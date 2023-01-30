@@ -1,0 +1,2 @@
+[workspace]
+members = ["bare_crates/kernel", "bare_crates/limine_mini"]
