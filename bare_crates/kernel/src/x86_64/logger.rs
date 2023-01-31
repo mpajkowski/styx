@@ -5,10 +5,8 @@ use core::fmt::Write;
 use log::{LevelFilter, Log, Record};
 use spin::Once;
 
-use crate::{
-    drivers::{Serial, Terminal},
-    sync::Mutex,
-};
+use super::drivers::{Serial, Terminal};
+use super::sync::Mutex;
 
 static LOGGER: Once<Logger> = Once::new();
 

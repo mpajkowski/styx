@@ -3,6 +3,14 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
+pub fn hlt() {
+    unsafe { asm!("hlt") }
+}
+
+pub fn pause() {
+    unsafe { asm!("pause") }
+}
+
 /// Disables interrupts using `cli` instruction
 pub fn disable_interrupts() {
     unsafe {

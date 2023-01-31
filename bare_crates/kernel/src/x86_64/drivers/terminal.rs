@@ -2,7 +2,7 @@ use core::fmt::Write;
 
 use limine_mini::terminal;
 
-use crate::Limine;
+use crate::x86_64::limine::Limine;
 
 pub struct Terminal {
     resp: &'static terminal::Response,

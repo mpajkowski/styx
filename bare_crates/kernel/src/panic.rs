@@ -1,8 +1,10 @@
-use core::{hint::spin_loop, panic::PanicInfo};
+use core::panic::PanicInfo;
 
 #[panic_handler]
-fn panic_handler(_info: &PanicInfo) -> ! {
+fn panic_handler(info: &PanicInfo) -> ! {
+    log::error!("KERNEL PANIC: {info:?}");
+
     loop {
-        spin_loop();
+        crate::arch::sync::hlt();
     }
 }
