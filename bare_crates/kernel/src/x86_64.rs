@@ -6,6 +6,9 @@ mod limine;
 mod logger;
 
 mod addr;
+mod idt;
+
+pub mod registers;
 pub mod sync;
 
 pub use addr::{PhysAddr, VirtAddr, VirtAddrInvalid};

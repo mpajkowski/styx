@@ -201,6 +201,13 @@ unsafe fn load_ds(selector: SegmentSelector) {
     asm!("mov ds, {0:x}", in(reg) selector.0, options(nomem, nostack))
 }
 
+pub unsafe fn get_cs() -> SegmentSelector {
+    let segment: u16;
+    asm!("mov {0:x}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
+
+    SegmentSelector(segment)
+}
+
 #[inline(always)]
 unsafe fn load_es(selector: SegmentSelector) {
     asm!("mov es, {0:x}", in(reg) selector.0, options(nomem, nostack))

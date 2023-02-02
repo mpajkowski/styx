@@ -13,6 +13,12 @@ pub mod arch {
 pub fn main() {
     log::info!("Initialized architecture");
 
+    // test if page fault occurrs
+    unsafe {
+        let x: u32 = core::ptr::read_volatile(0x0 as *const _);
+        log::info!("X: {x}");
+    }
+
     loop {
         arch::sync::hlt()
     }
