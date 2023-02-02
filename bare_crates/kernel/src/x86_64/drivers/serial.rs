@@ -8,6 +8,7 @@ pub struct Serial {
     port: u16,
 }
 
+#[allow(unused)]
 impl Serial {
     pub fn init_com1() -> Result<Self, &'static str> {
         unsafe { init(COM1)? };

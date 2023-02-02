@@ -1,7 +1,7 @@
-use limine_mini::terminal;
+use limine_mini::terminal::Response as TerminalResponse;
 
 pub struct Limine {
-    pub terminal: &'static limine_mini::terminal::Response,
+    pub terminal: &'static TerminalResponse,
 }
 
 impl Limine {
@@ -13,7 +13,5 @@ impl Limine {
 }
 
 mod req {
-    use super::*;
-
-    pub static TERMINAL: terminal::Request = terminal::Request::new(0);
+    pub static TERMINAL: limine_mini::terminal::Request = limine_mini::terminal::Request::new(0);
 }

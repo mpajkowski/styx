@@ -1,7 +1,6 @@
 use crate::framebuffer::Framebuffer;
 
-type WriteFn =
-    Option<unsafe extern "C" fn(terminal: *const Terminal, string: *const u8, length: u64)>;
+pub type WriteFn = unsafe extern "C" fn(terminal: *const Terminal, string: *const u8, length: u64);
 
 #[repr(C)]
 pub struct Response {
@@ -23,12 +22,8 @@ impl Response {
         unsafe { core::slice::from_raw_parts(self.terminals, self.terminal_count as usize) }
     }
 
-    pub fn write(&self) -> Option<impl Fn(&Terminal, &str)> {
-        let term_func = self.write_fn?;
-
-        Some(move |terminal: &Terminal, txt: &str| unsafe {
-            term_func(terminal as *const _, txt.as_ptr(), txt.len() as u64);
-        })
+    pub fn write_fn(&self) -> WriteFn {
+        self.write_fn
     }
 }
 

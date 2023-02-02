@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use core::arch::asm;
 
 /// Writes u8 `value` to `port`.

@@ -2,7 +2,9 @@
 
 set -e -x
 
+cd bare_crates
 cargo build --release
+cd ..
 
 ISOROOT="build/iso_root"
 ISO="build/image.iso"
@@ -12,9 +14,11 @@ mkdir -p "$ISOROOT"
 
 # Copy the relevant files over.
 cp -v \
-    target/x86_64-unknown-none/release/kernel \
+    bare_crates/target/x86_64-unknown-none/release/kernel \
     assets/* \
-    limine/* \
+    limine/limine-cd.bin \
+    limine/limine-cd-efi.bin \
+    limine/limine.sys \
     "$ISOROOT"
 
 rm build/image.iso || true
@@ -33,7 +37,7 @@ xorriso \
    "$ISOROOT" -o "$ISO"
 
 # Install Limine stage 1 and 2 for legacy BIOS boot.
-utils/limine-deploy "$ISO"
+limine/limine-deploy "$ISO"
 
 rm -rf "$ISOROOT" || true
 
