@@ -1,4 +1,4 @@
-use crate::x86_64::idt;
+use crate::x86_64::interrupts;
 use crate::x86_64::limine::Limine;
 
 use super::drivers;
@@ -16,7 +16,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
     log::info!("Loading early GDT");
     gdt::early_init();
-    idt::init();
+    interrupts::init();
 
     log::info!("Through the jungle by the river Styx");
     log::info!("I've journed long and far this day");

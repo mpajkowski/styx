@@ -1,17 +1,20 @@
-use core::{arch::asm, mem};
+use core::arch::asm;
 
 use bitflags::bitflags;
-use easybit::BitManipulate;
 
-use crate::x86_64::DescriptorPointer;
-
-use super::{
-    gdt::{self, Ring, SegmentSelector},
-    registers::{IretRegisters, PreservedRegisters, ScratchRegisters},
-    VirtAddr,
+use crate::{
+    arch::{
+        interrupts::handlers::register_exception,
+        registers::{IretRegisters, PreservedRegisters, ScratchRegisters},
+        VirtAddr,
+    },
+    x86_64::{
+        gdt::{self, SegmentSelector},
+        DescriptorPointer,
+    },
 };
 
-const IDT_ENTRIES: usize = 256;
+use super::{handlers, IDT_ENTRIES};
 
 #[repr(align(0x10))]
 struct InterruptDescriptorTable([Entry; IDT_ENTRIES]);
@@ -78,6 +81,15 @@ impl Flags {
     }
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct InterruptErrorStack {
+    pub error_code: u64,
+    pub stack: InterruptStack,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct InterruptStack {
     pub preserved: PreservedRegisters,
     pub scratch: ScratchRegisters,
@@ -85,15 +97,19 @@ pub struct InterruptStack {
 }
 
 #[no_mangle]
-pub extern "C" fn generic_irq_handler() {
-    log::info!("Called generic_interrupt_handler");
+pub extern "C" fn generic_irq_handler(isr: usize, stack: *mut InterruptErrorStack) {
+    log::debug!("Exception: {isr}");
+
+    let stack = unsafe { &mut *stack };
+
+    handlers::handle(isr, stack);
 }
 
 #[inline(always)]
 unsafe fn load() {
     let ptr = DescriptorPointer {
         size: (core::mem::size_of::<InterruptDescriptorTable>() - 1) as u16,
-        address: &IDT as *const _ as u64,
+        address: VirtAddr::new_unchecked(&IDT as *const _ as u64),
     };
 
     asm!("lidt [{}]", in(reg) &ptr, options(nostack));
@@ -113,6 +129,27 @@ pub fn init() {
             .for_each(|(idx, addr)| {
                 IDT.0[idx].set_handler_addr(*addr);
             });
+
+        register_exception(0, super::handlers::divide_by_zero);
+        register_exception(1, super::handlers::debug);
+        register_exception(2, super::handlers::non_maskable);
+        register_exception(3, super::handlers::breakpoint);
+        register_exception(4, super::handlers::overflow);
+        register_exception(5, super::handlers::bound_range);
+        register_exception(6, super::handlers::invalid_opcode);
+        register_exception(7, super::handlers::device_not_available);
+        register_exception(8, super::handlers::double_fault);
+        register_exception(10, super::handlers::invalid_tss);
+        register_exception(11, super::handlers::segment_not_present);
+        register_exception(12, super::handlers::stack_segment);
+        register_exception(13, super::handlers::protection);
+        register_exception(14, super::handlers::page_fault);
+        register_exception(16, super::handlers::fpu_fault);
+        register_exception(17, super::handlers::alignment_check);
+        register_exception(18, super::handlers::machine_check);
+        register_exception(19, super::handlers::simd);
+        register_exception(20, super::handlers::virtualization);
+        register_exception(30, super::handlers::security);
 
         load();
     }

@@ -125,7 +125,7 @@ impl GdtEntry {
 unsafe fn load(table: &'static mut [GdtEntry]) {
     let ptr = DescriptorPointer {
         size: (table.len() * size_of::<GdtEntry>() - 1) as u16,
-        address: table.as_ptr() as u64,
+        address: VirtAddr::new(table.as_ptr() as u64),
     };
 
     asm!("lgdt [{}]", in(reg) &ptr, options(nostack));
@@ -264,8 +264,6 @@ pub fn early_init() {
         load_cs(SegmentSelector::new(GdtEntryType::KernelCode, Ring::Ring0));
         load_ds(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
         load_es(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
-        load_fs(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
-        load_gs(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
         load_ss(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
     }
 }

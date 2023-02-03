@@ -1,6 +1,8 @@
 bits 64
 
-extern generic_irq_handler;
+%include "registers.inc"
+
+extern generic_irq_handler
 
 %macro make_irq_handler 2
 [global irq_handler_%1]
@@ -8,7 +10,26 @@ irq_handler_%1:
 %if %2 == 0
     push 0
 %endif
+    lock xchg [rsp], rax
+
+    push_scratch_registers
+    push_preserved_registers
+    push rax
+
+    ; prepare call for generic_irq_handler(idx: usize, stack *mut InterruptStack)
+    mov rdi, %1
+    mov rsi, rsp
+
+    ; call the handler
     call generic_irq_handler
+
+    ; pop error code
+    add rsp, 8
+
+    pop_preserved_registers
+    pop_scratch_registers
+
+    ; return from interrupt
     iretq
 %endmacro
 
@@ -30,11 +51,11 @@ make_irq_handler_no_error 6
 make_irq_handler_no_error 7
 make_irq_handler_error    8
 ; reserved                9
-make_irq_handler_no_error 10
-make_irq_handler_no_error 11
-make_irq_handler_no_error 12
-make_irq_handler_no_error 13
-make_irq_handler_no_error 14
+make_irq_handler_error 10
+make_irq_handler_error 11
+make_irq_handler_error 12
+make_irq_handler_error 13
+make_irq_handler_error 14
 ; reserved                15
 make_irq_handler_no_error 16
 make_irq_handler_error    17

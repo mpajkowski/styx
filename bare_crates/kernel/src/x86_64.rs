@@ -6,8 +6,8 @@ mod limine;
 mod logger;
 
 mod addr;
-mod idt;
 
+pub mod interrupts;
 pub mod registers;
 pub mod sync;
 
@@ -17,5 +17,5 @@ pub use addr::{PhysAddr, VirtAddr, VirtAddrInvalid};
 #[repr(C, packed)]
 struct DescriptorPointer {
     pub size: u16,
-    pub address: u64,
+    pub address: VirtAddr,
 }

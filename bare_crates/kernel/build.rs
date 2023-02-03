@@ -11,18 +11,28 @@ fn main() {
 }
 
 fn build_nasm() -> io::Result<()> {
-    for asm in collect_files("src", |path| {
-        path.extension().and_then(|x| x.to_str()) == Some("asm")
-    })? {
-        eprintln!("Compiling {}", asm.display());
+    let header_files = find_files_with_ext("src", "inc")?;
 
+    let mut include_paths = header_files
+        .into_iter()
+        .map(|p| p.parent().unwrap().to_owned())
+        .collect::<Vec<_>>();
+    include_paths.dedup();
+
+    let source_files = find_files_with_ext("src", "asm")?;
+
+    let mut build = nasm_rs::Build::new();
+
+    for include in &include_paths {
+        build.include(include);
+    }
+
+    build.flag("-felf64").target("x86_64-unknown-none");
+
+    for asm in source_files {
         let object_file = asm.file_name().and_then(|x| x.to_str()).unwrap();
-        let mut build = nasm_rs::Build::new();
-
         build
             .file(&asm)
-            .flag("-felf64")
-            .target("x86_64-unknown-none")
             .compile(object_file)
             .expect("Failed to compile nasm file");
 
@@ -42,10 +52,7 @@ fn pass_linker_script(krate: &str) {
     println!("cargo:rerun-if-env-changed=CARGO_PKG_NAME");
 }
 
-fn collect_files(
-    dir: impl AsRef<Path>,
-    filter: impl Fn(&Path) -> bool + Copy,
-) -> io::Result<Vec<PathBuf>> {
+fn find_files_with_ext(dir: impl AsRef<Path>, ext: &str) -> io::Result<Vec<PathBuf>> {
     let mut ret = vec![];
     let path = dir.as_ref();
 
@@ -55,8 +62,8 @@ fn collect_files(
             let path = entry.path();
 
             if path.is_dir() {
-                ret.extend(collect_files(path, filter)?);
-            } else if filter(&path) {
+                ret.extend(find_files_with_ext(path, ext)?);
+            } else if path.extension().and_then(|x| x.to_str()) == Some(ext) {
                 ret.push(path);
             }
         }

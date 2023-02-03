@@ -111,11 +111,6 @@ impl VirtAddr {
         }
     }
 
-    /// Creates virtual address from any reference
-    pub fn from_ref<T>(reference: &T) -> Self {
-        Self::new((reference as *const T) as u64)
-    }
-
     /// Creates new virtual address
     ///
     /// Performs sign extending if needed
