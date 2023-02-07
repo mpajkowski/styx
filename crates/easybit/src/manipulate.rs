@@ -180,9 +180,9 @@ mod test {
         let mut val = 0b0000_1111;
 
         val.set_range(0..4, 0);
-        assert_eq!(val, 0b0000_0000, "{:#b}", val);
+        assert_eq!(val, 0b0000_0000, "{val:#b}");
 
         val.set_range(4..8, 0b1111);
-        assert_eq!(val, 0b1111_0000, "{:#b}", val);
+        assert_eq!(val, 0b1111_0000, "{val:#b}");
     }
 }

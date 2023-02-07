@@ -5,6 +5,8 @@ use core::fmt::Write;
 use log::{LevelFilter, Log, Record};
 use spin::Once;
 
+use crate::Terminal;
+
 use super::drivers::Serial;
 use super::sync::Mutex;
 
@@ -13,7 +15,7 @@ static LOGGER: Once<Logger> = Once::new();
 #[allow(unused)]
 struct Logger {
     level: log::LevelFilter,
-    serial: Mutex<Serial>,
+    writers: Mutex<(Serial, Terminal)>,
 }
 
 impl Logger {
@@ -36,9 +38,10 @@ impl Log for Logger {
         let metadata = record.metadata();
 
         if self.enabled(metadata) {
-            let mut serial = self.serial.lock_disabling_interrupts();
+            let mut writers = self.writers.lock_disabling_interrupts();
 
-            self.log(&mut *serial, record);
+            self.log(&mut writers.0, record);
+            self.log(&mut writers.1, record);
         }
     }
 
@@ -46,10 +49,10 @@ impl Log for Logger {
 }
 
 /// Initializes logger
-pub fn initialize(serial: Serial) {
+pub fn initialize(serial: Serial, terminal: Terminal) {
     let logger = Logger {
         level: log::LevelFilter::Trace,
-        serial: Mutex::new(serial),
+        writers: Mutex::new((serial, terminal)),
     };
 
     let logger = LOGGER.call_once(|| logger);

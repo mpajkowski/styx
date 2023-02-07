@@ -45,7 +45,7 @@ pub fn register_handler(handler: InterruptHandler) -> usize {
 }
 
 pub unsafe fn register_exception(index: usize, handler: ExceptionHandler) {
-    unsafe { HANDLERS.0[index] = Handler::Exception(handler) };
+    HANDLERS.0[index] = Handler::Exception(handler);
 }
 
 macro_rules! make_exception {
@@ -87,7 +87,7 @@ make_exception!(simd => "SIMD floating point fault");
 make_exception!(virtualization => "Virtualization fault");
 make_exception!(security => "Security exception");
 
-pub fn handle(isr: usize, stack: &mut InterruptErrorStack) {
+pub fn handle(isr: u64, stack: &mut InterruptErrorStack) {
     let handler = unsafe { HANDLERS.0[isr as usize] };
     handler.handle(stack);
 }

@@ -97,7 +97,7 @@ pub struct InterruptStack {
 }
 
 #[no_mangle]
-pub extern "C" fn generic_irq_handler(isr: usize, stack: *mut InterruptErrorStack) {
+pub extern "C" fn generic_irq_handler(isr: u64, stack: *mut InterruptErrorStack) {
     log::debug!("Exception: {isr}");
 
     let stack = unsafe { &mut *stack };

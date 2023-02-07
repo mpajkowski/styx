@@ -91,6 +91,7 @@ dependencies = [
  "limine_mini",
  "log",
  "nasm-rs",
+ "noto-sans-mono-bitmap",
  "spin",
 ]
 
@@ -140,6 +141,12 @@ checksum = "ce095842aee9aa3ecbda7a5d2a4df680375fd128a8596b6b56f8e497e231f483"
 dependencies = [
  "rayon",
 ]
+
+[[package]]
+name = "noto-sans-mono-bitmap"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a27daf9557165efe1d09b52f97393bf6283cadb0a76fbe64a1061e15553a994a"
 
 [[package]]
 name = "num_cpus"

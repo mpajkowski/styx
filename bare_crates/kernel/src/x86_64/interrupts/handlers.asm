@@ -16,7 +16,7 @@ irq_handler_%1:
     push_preserved_registers
     push rax
 
-    ; prepare call for generic_irq_handler(idx: usize, stack *mut InterruptStack)
+    ; prepare call for generic_irq_handler(idx: usize, stack: *mut InterruptStack)
     mov rdi, %1
     mov rsi, rsp
 
