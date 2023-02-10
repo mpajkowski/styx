@@ -9,13 +9,20 @@ use super::logger;
 pub extern "C" fn _x86_64_bsp_entrypoint() {
     super::sync::disable_interrupts();
 
-    let _boot_info = Limine::gather();
+    let boot_info = Limine::gather();
+
     let com1 = drivers::Serial::init_com1().unwrap();
+    let framebuffer = boot_info.framebuffer();
+    let terminal = crate::Terminal::new(framebuffer.width(), framebuffer.height());
+    framebuffer.install();
 
-    logger::initialize(com1);
+    logger::initialize(com1, terminal);
+    log::info!("Installed logger");
 
-    log::info!("Loading early GDT");
+    log::info!("Installing early GDT");
     gdt::early_init();
+
+    log::info!("Installing interrupts");
     interrupts::init();
 
     log::info!("Through the jungle by the river Styx");

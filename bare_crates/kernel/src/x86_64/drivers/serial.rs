@@ -49,6 +49,7 @@ impl Serial {
 }
 
 #[inline(always)]
+#[allow(clippy::identity_op)]
 unsafe fn init(port: u16) -> Result<(), &'static str> {
     ioport::write_u8(port + 1, 0x00); // disable all interrupts
     ioport::write_u8(port + 3, 0x80); // enable DLAB

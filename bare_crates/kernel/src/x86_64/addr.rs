@@ -16,6 +16,10 @@ impl PhysAddr {
     }
 
     /// Creates unchecked physical address
+    ///
+    /// # Safety
+    ///
+    /// You must ensure that your address is in valid range for x86_64 with 4 level paging
     pub const unsafe fn new_unchecked(addr: u64) -> Self {
         Self(addr)
     }
@@ -77,7 +81,7 @@ impl core::fmt::Pointer for VirtAddrInvalid {
 
 impl core::fmt::Display for VirtAddrInvalid {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        <VirtAddrInvalid as core::fmt::Pointer>::fmt(&self, f)
+        <VirtAddrInvalid as core::fmt::Pointer>::fmt(self, f)
     }
 }
 
@@ -134,7 +138,7 @@ impl VirtAddr {
 
     /// Returns `Some(self)` if not null, `None` otherwise
     pub fn nonzero(self) -> Option<Self> {
-        (self != VirtAddr::zero()).then(|| self)
+        (self != VirtAddr::zero()).then_some(self)
     }
 
     /// Tests for NULL
