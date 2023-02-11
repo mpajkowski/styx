@@ -1,65 +1,55 @@
-use core::ops::Range;
-
-pub trait BitManipulate: Sized {
-    const BIT_LEN: usize;
-
-    fn read_bit(&self, bit: usize) -> bool;
-    fn set_bit(&mut self, bit: usize, value: bool);
-    fn read_range(&self, range: Range<usize>) -> Self;
-    fn set_range(&mut self, range: Range<usize>, value: Self);
+#[macro_export]
+macro_rules! bit_sizeof {
+    ($target: expr) => {{
+        core::mem::size_of_val(&$target) * 8
+    }};
 }
 
-macro_rules! impl_bit_manipulate {
-    ($($t: ty),*) => {
-        $(
-        impl BitManipulate for $t {
-            const BIT_LEN: usize = core::mem::size_of::<$t>() * 8;
+#[macro_export]
+macro_rules! read_bit {
+    ($target: expr, $bit: expr) => {{
+        (($target >> $bit) & 1) != 0
+    }};
+}
 
-            #[inline]
-            fn read_bit(&self, bit: usize) -> bool {
-                debug_assert!(bit < Self::BIT_LEN);
-
-                ((self >> bit) & 1) != 0
-            }
-
-            #[inline]
-            fn set_bit(&mut self, bit: usize, value: bool) {
-                debug_assert!(bit < Self::BIT_LEN);
-
-                if value {
-                    *self |= 1 << bit;
-                } else {
-                    *self &= !(1 << bit);
-                }
-            }
-
-            #[inline]
-            fn read_range(&self, range: Range<usize>) -> Self {
-                debug_assert!(range.start < Self::BIT_LEN);
-                debug_assert!(range.end <= Self::BIT_LEN);
-                debug_assert!(range.end > range.start);
-
-                let high_shift = Self::BIT_LEN - range.end;
-                (self << high_shift >> high_shift) >> range.start
-            }
-
-            #[inline]
-            fn set_range(&mut self, range: Range<usize>, value: Self) {
-                debug_assert!(range.start < Self::BIT_LEN);
-                debug_assert!(range.end <= Self::BIT_LEN);
-                debug_assert!(range.end > range.start);
-
-                let high_shift = Self::BIT_LEN - range.end;
-                let mask = !(!(0 << high_shift) >> high_shift >> range.start << range.start);
-
-                *self = (*self & mask) | (value << range.start)
-            }
+#[macro_export]
+macro_rules! set_bit {
+    ($target: expr, $bit: expr, $value: expr) => {{
+        if $value {
+            $target | 1 << $bit
+        } else {
+            $target & !(1 << $bit)
         }
-        )*
-    };
+    }};
+
+    ($target: expr, $bit: expr, true) => {{
+        $target | 1 << $bit
+    }};
+
+    ($target: expr, $bit: expr, false) => {{
+        $target & !(1 << $bit)
+    }};
 }
 
-impl_bit_manipulate!(u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
+#[macro_export]
+macro_rules! read_range {
+    ($target: expr, $range:expr) => {{
+        let high_shift = bit_sizeof!($target) - $range.end;
+
+        ($target << high_shift >> high_shift) >> $range.start
+    }};
+}
+
+#[macro_export]
+macro_rules! set_range {
+    ($target: expr, $range:expr, $value: expr) => {{
+        let high_shift = bit_sizeof!($target) - $range.end;
+
+        let mask = !(!(0 << high_shift) >> high_shift >> $range.start << $range.start);
+
+        ($target & mask) | ($value << $range.start)
+    }};
+}
 
 #[cfg(test)]
 mod test {
@@ -69,120 +59,140 @@ mod test {
     fn read_bits() {
         let val: u8 = 0b0000_1111;
 
-        assert!(val.read_bit(0));
-        assert!(val.read_bit(1));
-        assert!(val.read_bit(2));
-        assert!(val.read_bit(3));
-        assert!(!val.read_bit(4));
-        assert!(!val.read_bit(5));
-        assert!(!val.read_bit(6));
-        assert!(!val.read_bit(7));
+        assert!(read_bit!(val, 0));
+        assert!(read_bit!(val, 1));
+        assert!(read_bit!(val, 2));
+        assert!(read_bit!(val, 3));
+        assert!(!read_bit!(val, 4));
+        assert!(!read_bit!(val, 5));
+        assert!(!read_bit!(val, 6));
+        assert!(!read_bit!(val, 7));
     }
 
     #[test]
     fn set_bits() {
         let mut val: u8 = 0b0000_0000;
 
-        assert!(!val.read_bit(0));
-        val.set_bit(0, true);
-        assert!(val.read_bit(0));
+        assert!(!read_bit!(val, 0));
+        val = set_bit!(val, 0, true);
+        assert!(read_bit!(val, 0));
         assert_eq!(val, 0b0000_0001);
 
-        assert!(!val.read_bit(1));
-        val.set_bit(1, true);
-        assert!(val.read_bit(1));
+        assert!(!read_bit!(val, 1));
+        val = set_bit!(val, 1, true);
+        assert!(read_bit!(val, 1));
         assert_eq!(val, 0b0000_0011);
 
-        assert!(!val.read_bit(2));
-        val.set_bit(2, true);
-        assert!(val.read_bit(2));
+        assert!(!read_bit!(val, 2));
+        val = set_bit!(val, 2, true);
+        assert!(read_bit!(val, 2));
         assert_eq!(val, 0b0000_0111);
 
-        assert!(!val.read_bit(3));
-        val.set_bit(3, true);
-        assert!(val.read_bit(3));
+        assert!(!read_bit!(val, 3));
+        val = set_bit!(val, 3, true);
+        assert!(read_bit!(val, 3));
         assert_eq!(val, 0b0000_1111);
 
-        assert!(!val.read_bit(4));
-        val.set_bit(4, true);
-        assert!(val.read_bit(4));
+        assert!(!read_bit!(val, 4));
+        val = set_bit!(val, 4, true);
+        assert!(read_bit!(val, 4));
         assert_eq!(val, 0b0001_1111);
 
-        assert!(!val.read_bit(5));
-        val.set_bit(5, true);
-        assert!(val.read_bit(5));
+        assert!(!read_bit!(val, 5));
+        val = set_bit!(val, 5, true);
+        assert!(read_bit!(val, 5));
         assert_eq!(val, 0b0011_1111);
 
-        assert!(!val.read_bit(6));
-        val.set_bit(6, true);
-        assert!(val.read_bit(6));
+        assert!(!read_bit!(val, 6));
+        val = set_bit!(val, 6, true);
+        assert!(read_bit!(val, 6));
         assert_eq!(val, 0b0111_1111);
 
-        assert!(!val.read_bit(7));
-        val.set_bit(7, true);
-        assert!(val.read_bit(7));
+        assert!(!read_bit!(val, 7));
+        val = set_bit!(val, 7, true);
+        assert!(read_bit!(val, 7));
         assert_eq!(val, 0b1111_1111);
 
-        assert!(val.read_bit(0));
-        val.set_bit(0, false);
-        assert!(!val.read_bit(0));
+        assert!(read_bit!(val, 0));
+        val = set_bit!(val, 0, false);
+        assert!(!read_bit!(val, 0));
         assert_eq!(val, 0b1111_1110);
 
-        assert!(val.read_bit(1));
-        val.set_bit(1, false);
-        assert!(!val.read_bit(1));
+        assert!(read_bit!(val, 1));
+        val = set_bit!(val, 1, false);
+        assert!(!read_bit!(val, 1));
         assert_eq!(val, 0b1111_1100);
 
-        assert!(val.read_bit(2));
-        val.set_bit(2, false);
-        assert!(!val.read_bit(2));
+        assert!(read_bit!(val, 2));
+        val = set_bit!(val, 2, false);
+        assert!(!read_bit!(val, 2));
         assert_eq!(val, 0b1111_1000);
 
-        assert!(val.read_bit(3));
-        val.set_bit(3, false);
-        assert!(!val.read_bit(3));
+        assert!(read_bit!(val, 3));
+        val = set_bit!(val, 3, false);
+        assert!(!read_bit!(val, 3));
         assert_eq!(val, 0b1111_0000);
 
-        assert!(val.read_bit(4));
-        val.set_bit(4, false);
-        assert!(!val.read_bit(4));
+        assert!(read_bit!(val, 4));
+        val = set_bit!(val, 4, false);
+        assert!(!read_bit!(val, 4));
         assert_eq!(val, 0b1110_0000);
 
-        assert!(val.read_bit(5));
-        val.set_bit(5, false);
-        assert!(!val.read_bit(5));
+        assert!(read_bit!(val, 5));
+        val = set_bit!(val, 5, false);
+        assert!(!read_bit!(val, 5));
         assert_eq!(val, 0b1100_0000);
 
-        assert!(val.read_bit(6));
-        val.set_bit(6, false);
-        assert!(!val.read_bit(6));
+        assert!(read_bit!(val, 6));
+        val = set_bit!(val, 6, false);
+        assert!(!read_bit!(val, 6));
         assert_eq!(val, 0b1000_0000);
 
-        assert!(val.read_bit(7));
-        val.set_bit(7, false);
-        assert!(!val.read_bit(7));
+        assert!(read_bit!(val, 7));
+        val = set_bit!(val, 7, false);
+        assert!(!read_bit!(val, 7));
         assert_eq!(val, 0b0000_0000);
+    }
+
+    pub fn set_dynamic() {
+        let mut target = 0_u8;
+        let value = true;
+
+        target = set_bit!(target, 0, value);
     }
 
     #[test]
     fn read_range() {
         let val: u8 = 0b0000_1111;
 
-        assert_eq!(val.read_range(0..4), 0b1111);
-        assert_eq!(val.read_range(1..5), 0b0111);
-        assert_eq!(val.read_range(2..6), 0b0011);
-        assert_eq!(val.read_range(3..7), 0b0001);
-        assert_eq!(val.read_range(4..8), 0b0000);
+        assert_eq!(read_range!(val, 0..4), 0b1111);
+        assert_eq!(read_range!(val, 1..5), 0b0111);
+        assert_eq!(read_range!(val, 2..6), 0b0011);
+        assert_eq!(read_range!(val, 3..7), 0b0001);
+        assert_eq!(read_range!(val, 4..8), 0b0000);
     }
 
     #[test]
     fn set_range() {
         let mut val = 0b0000_1111;
 
-        val.set_range(0..4, 0);
+        val = set_range!(val, 0..4, 0);
         assert_eq!(val, 0b0000_0000, "{val:#b}");
 
-        val.set_range(4..8, 0b1111);
+        val = set_range!(val, 4..8, 0b1111);
         assert_eq!(val, 0b1111_0000, "{val:#b}");
+    }
+
+    #[test]
+    fn allow_in_const_context() {
+        const fn const_fn() -> bool {
+            let on = true;
+            let off = false;
+            let mut x = read_bit!(0x1_u8, 0);
+            let mut x = set_bit!(0x1_u8, 0, on);
+            let mut x = set_bit!(0x1_u8, 0, off);
+            x == 0
+        }
+        assert!(const_fn());
     }
 }

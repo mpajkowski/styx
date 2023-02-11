@@ -2,5 +2,3 @@
 
 mod align;
 mod manipulate;
-
-pub use manipulate::BitManipulate;
