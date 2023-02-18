@@ -2,6 +2,8 @@
 
 set -e -x
 
+SYSTEM=$(uname -s)
+
 cd bare_crates
 cargo build --release
 cd ..
@@ -37,8 +39,13 @@ xorriso \
    "$ISOROOT" -o "$ISO"
 
 # Install Limine stage 1 and 2 for legacy BIOS boot.
-limine/limine-deploy "$ISO"
+#limine/limine-deploy "$ISO"
 
 rm -rf "$ISOROOT" || true
 
-qemu-system-x86_64 -enable-kvm -smp 2 -serial stdio -cdrom "$ISO" -d int,cpu_reset -m 512M # -bios /usr/share/edk2-ovmf/x64/OVMF.fd
+if [[ $SYSTEM == "Darwin" ]]; then
+    qemu-system-x86_64 -M q35 -smp 2 -serial stdio -cdrom "$ISO" -d int,cpu_reset -m 512M
+else
+    qemu-system-x86_64 -enable-kvm -smp 2 -serial stdio -cdrom "$ISO" -d int,cpu_reset -m 512M
+fi
+
