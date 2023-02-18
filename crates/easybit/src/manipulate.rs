@@ -188,9 +188,9 @@ mod test {
         const fn const_fn() -> bool {
             let on = true;
             let off = false;
-            let mut x = read_bit!(0x1_u8, 0);
-            let mut x = set_bit!(0x1_u8, 0, on);
-            let mut x = set_bit!(0x1_u8, 0, off);
+            let _ = read_bit!(0x1_u8, 0);
+            let _ = set_bit!(0x1_u8, 0, on);
+            let x = set_bit!(0x1_u8, 0, off);
             x == 0
         }
         assert!(const_fn());

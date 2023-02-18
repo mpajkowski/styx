@@ -1,6 +1,6 @@
 use core::{fmt::Debug, ops::Add};
 
-use easybit::{align_down, align_up, BitManipulate};
+use easybit::*;
 
 /// Represents physical address
 #[repr(transparent)]
@@ -108,7 +108,7 @@ impl VirtAddr {
 
     /// Creates new virtual address
     pub fn try_new(addr: u64) -> Result<Self, VirtAddrInvalid> {
-        match addr.read_range(47..64) {
+        match read_range!(addr, 47..64) {
             0 | 0x1ffff => Ok(VirtAddr(addr)),
             1 => Ok(VirtAddr::new_truncate(addr)),
             _ => Err(VirtAddrInvalid(addr)),

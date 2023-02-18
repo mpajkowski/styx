@@ -4,6 +4,7 @@ mod gdt;
 mod ioport;
 mod limine;
 mod logger;
+mod pmm;
 
 mod addr;
 
