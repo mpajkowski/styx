@@ -124,7 +124,7 @@ impl GdtEntry {
 #[inline(always)]
 unsafe fn load(table: &'static mut [GdtEntry]) {
     let ptr = DescriptorPointer {
-        size: (table.len() * size_of::<GdtEntry>() - 1) as u16,
+        size: (core::mem::size_of_val(table) - 1) as u16,
         address: VirtAddr::new(table.as_ptr() as u64),
     };
 

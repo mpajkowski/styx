@@ -1,5 +1,8 @@
 #![no_std]
 #![no_main]
+#![allow(clippy::bad_bit_mask)]
+
+extern crate alloc;
 
 mod drivers;
 mod panic;
@@ -14,6 +17,9 @@ pub mod arch {
 
 pub use drivers::Framebuffer;
 pub use drivers::Terminal;
+
+#[global_allocator]
+pub static HEAP_ALLOC: arch::HeapAllocator = arch::HeapAllocator::uninitialized();
 
 pub fn main() {
     log::info!("Initialized architecture");

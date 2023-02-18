@@ -51,7 +51,7 @@ impl Entry {
     };
 
     fn set_handler_addr(&mut self, addr: VirtAddr) {
-        let addr = addr.as_u64();
+        let addr = addr.to_u64();
 
         self.gdt_selector = unsafe { gdt::get_cs() };
         self.flags = Flags::PRESENT | Flags::RING_0 | Flags::INTERRUPT;

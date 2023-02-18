@@ -53,8 +53,6 @@ macro_rules! set_range {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     #[test]
     fn read_bits() {
         let val: u8 = 0b0000_1111;
@@ -154,13 +152,6 @@ mod test {
         assert_eq!(val, 0b0000_0000);
     }
 
-    pub fn set_dynamic() {
-        let mut target = 0_u8;
-        let value = true;
-
-        target = set_bit!(target, 0, value);
-    }
-
     #[test]
     fn read_range() {
         let val: u8 = 0b0000_1111;
@@ -188,9 +179,9 @@ mod test {
         const fn const_fn() -> bool {
             let on = true;
             let off = false;
-            let mut x = read_bit!(0x1_u8, 0);
-            let mut x = set_bit!(0x1_u8, 0, on);
-            let mut x = set_bit!(0x1_u8, 0, off);
+            let _ = read_bit!(0x1_u8, 0);
+            let _ = set_bit!(0x1_u8, 0, on);
+            let x = set_bit!(0x1_u8, 0, off);
             x == 0
         }
         assert!(const_fn());

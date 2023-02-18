@@ -34,7 +34,7 @@ impl Debug for Entry {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Entry")
             .field("base", &(self.base as *const u8))
-            .field("len", &self.len)
+            .field("len", &(self.len / 0x1000))
             .field("kind", &self.kind)
             .finish()
     }
@@ -51,7 +51,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn entries(&self) -> impl Iterator<Item = &Entry> {
+    pub fn entries(&self) -> impl Iterator<Item = &Entry> + Clone {
         unsafe {
             core::slice::from_raw_parts(self.entries, self.entry_count as usize)
                 .iter()

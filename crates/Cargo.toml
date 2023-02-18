@@ -1,2 +1,3 @@
 [workspace]
-members = ["easybit"]
+members = ["easybit", "frame-alloc", "ds"]
+resolver = "2"
