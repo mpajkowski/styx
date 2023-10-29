@@ -1,6 +1,6 @@
 use core::{fmt::Debug, ops::Add};
 
-use easybit::{align_down, align_up, BitManipulate};
+use easybit::*;
 
 /// Represents physical address
 #[repr(transparent)]
@@ -16,11 +16,7 @@ impl PhysAddr {
     }
 
     /// Creates unchecked physical address
-    ///
-    /// # Safety
-    ///
-    /// You must ensure that your address is in valid range for x86_64 with 4 level paging
-    pub const unsafe fn new_unchecked(addr: u64) -> Self {
+    pub const fn new_unchecked(addr: u64) -> Self {
         Self(addr)
     }
 
@@ -35,7 +31,7 @@ impl PhysAddr {
     }
 
     /// Convert address to `u64`
-    pub fn as_u64(self) -> u64 {
+    pub const fn to_u64(self) -> u64 {
         self.0
     }
 }
@@ -108,7 +104,7 @@ impl VirtAddr {
 
     /// Creates new virtual address
     pub fn try_new(addr: u64) -> Result<Self, VirtAddrInvalid> {
-        match addr.read_range(47..64) {
+        match read_range!(addr, 47..64) {
             0 | 0x1ffff => Ok(VirtAddr(addr)),
             1 => Ok(VirtAddr::new_truncate(addr)),
             _ => Err(VirtAddrInvalid(addr)),
@@ -127,7 +123,7 @@ impl VirtAddr {
     /// ## Safety
     ///
     /// Caller must guarantee that bits 64..48 are 0 or set to 1 if sign extension is used
-    pub const unsafe fn new_unchecked(addr: u64) -> Self {
+    pub const fn new_unchecked(addr: u64) -> Self {
         Self(addr)
     }
 
@@ -188,7 +184,7 @@ impl VirtAddr {
     }
 
     /// Convert address to `u64`
-    pub const fn as_u64(self) -> u64 {
+    pub const fn to_u64(self) -> u64 {
         self.0
     }
 

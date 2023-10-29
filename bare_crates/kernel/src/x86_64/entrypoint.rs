@@ -1,9 +1,13 @@
+use alloc::vec;
+
+use crate::x86_64::heap;
 use crate::x86_64::interrupts;
 use crate::x86_64::limine::Limine;
 
 use super::drivers;
 use super::gdt;
 use super::logger;
+use super::pmm;
 
 #[no_mangle]
 pub extern "C" fn _x86_64_bsp_entrypoint() {
@@ -25,8 +29,17 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     log::info!("Installing interrupts");
     interrupts::init();
 
+    pmm::initialize(&boot_info);
+    heap::initialize();
+
+    let mut vec = vec![1, 2, 3];
+    vec[0] = 5;
+    log::info!("Initialized heap: {vec:?}");
+
     log::info!("Through the jungle by the river Styx");
     log::info!("I've journed long and far this day");
+
+    super::sync::enable_interrupts();
 
     crate::main();
 }

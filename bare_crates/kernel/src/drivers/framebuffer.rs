@@ -5,7 +5,7 @@ use crate::arch::sync::Mutex;
 static FRAMEBUFFER: Mutex<MaybeUninit<Framebuffer>> = Mutex::new(MaybeUninit::uninit());
 
 pub struct Framebuffer {
-    slice: &'static mut [u32],
+    fb: &'static mut [u32],
     width: u64,
     height: u64,
     pitch: u64,
@@ -15,8 +15,8 @@ pub struct Framebuffer {
 impl fmt::Debug for Framebuffer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Framebuffer")
-            .field("addr", &self.slice.as_ptr())
-            .field("len", &self.slice.len())
+            .field("addr", &self.fb.as_ptr())
+            .field("len", &self.fb.len())
             .field("width", &self.width)
             .field("height", &self.height)
             .field("pitch", &self.pitch)
@@ -30,7 +30,7 @@ impl Framebuffer {
 
     pub fn new(slice: &'static mut [u32], width: u64, height: u64, pitch: u64, bpp: u16) -> Self {
         let mut this = Self {
-            slice,
+            fb: slice,
             width,
             height,
             pitch,
@@ -55,7 +55,7 @@ impl Framebuffer {
     }
 
     pub fn clear(&mut self) {
-        self.slice.fill(Self::BACKGROUND.0);
+        self.fb.fill(Self::BACKGROUND.0);
     }
 
     pub fn with_handle<T>(mut fun: impl FnMut(&Self) -> T) -> T {
@@ -79,7 +79,7 @@ impl Framebuffer {
     }
 
     pub fn put_pixel_at_pos(&mut self, pos: usize, color: Color) {
-        self.slice[pos] = color.0;
+        self.fb[pos] = color.0;
     }
 }
 

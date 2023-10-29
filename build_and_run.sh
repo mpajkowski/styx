@@ -8,44 +8,27 @@ cd bare_crates
 cargo build --release
 cd ..
 
-ISOROOT="build/iso_root"
-ISO="build/image.iso"
+ESP="build/esp"
 
-# Create a directory which will be our ISO root.
-mkdir -p "$ISOROOT"
+# create virtual esp partition
+mkdir -p "$ESP/efi/boot"
 
-# Copy the relevant files over.
+# copy kernel image and assets to esp partition
 cp -v \
     bare_crates/target/x86_64-unknown-none/release/kernel \
     assets/* \
-    limine/limine-cd.bin \
-    limine/limine-cd-efi.bin \
-    limine/limine.sys \
-    "$ISOROOT"
+    "$ESP"
 
-rm build/image.iso || true
+# deploy limine uefi image
+cp "limine/LIMINEX64.EFI" "$ESP/efi/boot/BOOTX64.EFI"
 
-# Create the bootable ISO.
-xorriso \
-    -as mkisofs \
-    -b limine-cd.bin \
-    -no-emul-boot \
-    -boot-load-size 4 \
-    -boot-info-table \
-    --efi-boot limine-cd-efi.bin \
-    -efi-boot-part \
-    --efi-boot-image \
-    --protective-msdos-label \
-   "$ISOROOT" -o "$ISO"
-
-# Install Limine stage 1 and 2 for legacy BIOS boot.
-#limine/limine-deploy "$ISO"
-
-rm -rf "$ISOROOT" || true
-
-if [[ $SYSTEM == "Darwin" ]]; then
-    qemu-system-x86_64 -M q35 -smp 2 -serial stdio -cdrom "$ISO" -d int,cpu_reset -m 512M
-else
-    qemu-system-x86_64 -enable-kvm -smp 2 -serial stdio -cdrom "$ISO" -d int,cpu_reset -m 512M
-fi
-
+# launch qemu
+qemu-system-x86_64 \
+    -enable-kvm \
+    -smp 2 \
+    -m 512M \
+    -serial stdio \
+    -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_VARS.fd \
+    -drive format=raw,file=fat:rw:build/esp \
+    -d int,cpu_reset
