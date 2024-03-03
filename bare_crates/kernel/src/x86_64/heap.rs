@@ -1,9 +1,7 @@
 use core::alloc::{GlobalAlloc, Layout};
-use core::mem::{align_of, size_of};
 use core::ptr::NonNull;
 
 use alloc::alloc::alloc_zeroed;
-use alloc::vec;
 use linked_list_allocator::Heap;
 
 use crate::arch::FRAME_SIZE;
@@ -17,15 +15,18 @@ use super::paging::{
     page_table::PageTableFlags,
 };
 
-pub const HEAP_SIZE: usize = 5000 * 1024;
+pub const HEAP_SIZE: usize = 2 * 1024 * 1024;
 pub const HEAP_START: VirtAddr = VirtAddr::new_unchecked(0xffff_f800_0000_0000);
 
 pub fn initialize() {
     let heap = HeapAllocator::init_heap();
     *crate::HEAP_ALLOC.inner.lock() = heap;
 
-    //vec[0] = 5;
-    //log::info!("Initialized heap: {vec:?}");
+    let mut vec = alloc::vec![1, 2, 3];
+    vec[0] = 3;
+    vec[1] = 2;
+    vec[2] = 1;
+    log::info!("Initialized heap: {vec:?}");
 }
 
 pub struct HeapAllocator {
@@ -43,10 +44,9 @@ impl HeapAllocator {
         let mut address_space = AddressSpace::active();
         let mut offset_table = address_space.offset_table();
 
-        let pages = PhysAlloc::with(|phys_alloc| {
+        PhysAlloc::with(|phys_alloc| {
             let max = HEAP_START + HEAP_SIZE as u64;
             let mut addr = HEAP_START;
-            let mut counter = 0;
 
             while addr < max {
                 let frame: Frame = phys_alloc
@@ -67,12 +67,8 @@ impl HeapAllocator {
                     .flush();
 
                 addr = addr + FRAME_SIZE;
-                counter += 1;
             }
-            counter
         });
-
-        log::info!("mapped {pages} pages for heap");
 
         unsafe { Heap::new(HEAP_START.as_mut_ptr(), HEAP_SIZE) }
     }
@@ -98,14 +94,26 @@ unsafe impl GlobalAlloc for HeapAllocator {
 
 /// Allocates stack
 pub fn alloc_stack() -> VirtAddr {
+    const STACK_ALIGNMENT: usize = 16;
+
     unsafe {
-        const STACK_ALIGNMENT: usize = 16;
-        let layout = Layout::from_size_align_unchecked(0x1000, STACK_ALIGNMENT);
-        let raw = alloc_zeroed(layout);
-        assert!(!raw.is_null());
+        let layout = Layout::from_size_align_unchecked(0x1000 * 16, STACK_ALIGNMENT);
+        let raw = alloc_from_layout(layout);
         let stack_pointer = raw.add(layout.size());
         assert!(stack_pointer.align_offset(STACK_ALIGNMENT) == 0);
 
         VirtAddr::new_unchecked(raw.add(layout.size()) as u64)
+    }
+}
+
+pub fn alloc<T>() -> *mut T {
+    alloc_from_layout(Layout::new::<T>()) as *mut T
+}
+
+pub fn alloc_from_layout(layout: Layout) -> *mut u8 {
+    unsafe {
+        let ptr = alloc_zeroed(layout);
+        assert!(!ptr.is_null(), "allocator returned null ptr");
+        ptr
     }
 }

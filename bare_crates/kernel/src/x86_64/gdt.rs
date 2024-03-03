@@ -1,10 +1,13 @@
 #![allow(unused)]
 
-use core::{arch::asm, fmt::Debug, mem::size_of};
+use core::{alloc::Layout, arch::asm, fmt::Debug, mem::size_of};
 
 use crate::arch::VirtAddr;
 
-use super::DescriptorPointer;
+use super::{
+    cpulocal::{self, CpuInfo, CpuLocal},
+    fsgs, heap, DescriptorPointer,
+};
 
 bitflags::bitflags! {
     pub struct GdtEntryFlags: u8 {
@@ -46,6 +49,7 @@ pub enum Ring {
 }
 
 #[repr(C, packed)]
+#[derive(Debug)]
 pub struct Tss {
     reserved: u32,
     pub rsp: [VirtAddr; 3],
@@ -122,13 +126,24 @@ impl GdtEntry {
 ///
 /// NOTE the `&mut` - enforces that GDT table is placed within writable region
 #[inline(always)]
-unsafe fn load(table: &'static mut [GdtEntry]) {
+unsafe fn load(table: &mut [GdtEntry]) {
     let ptr = DescriptorPointer {
         size: (core::mem::size_of_val(table) - 1) as u16,
         address: VirtAddr::new(table.as_ptr() as u64),
     };
 
     asm!("lgdt [{}]", in(reg) &ptr, options(nostack));
+}
+
+/// Loads `SegmentSelector` using `ltr` instruction
+///
+/// ## Safety
+///
+/// Caller must ensure that built IDT is valid and `DescriptorPointer`
+/// points to valid virtual address
+#[inline]
+pub unsafe fn ltr(sel: SegmentSelector) {
+    asm!("ltr {0:x}", in(reg) sel.0, options(nomem, nostack, preserves_flags));
 }
 
 #[repr(transparent)]
@@ -146,7 +161,7 @@ impl Debug for SegmentSelector {
                     1 => Ring::Ring1,
                     2 => Ring::Ring2,
                     3 => Ring::Ring3,
-                    _ => unreachable!(),
+                    other => panic!("unknown ring {other}, implementation or cpu bug"),
                 },
             )
             .finish()
@@ -255,15 +270,126 @@ static mut GDT_BOOT: [GdtEntry; 3] = [
     ),
 ];
 
+const GDT_SIZE: usize = 10;
+const GDT_TEMPLATE: [GdtEntry; GDT_SIZE] = [
+    GdtEntry::NULL,
+    // Kernel code
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_0)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::EXECUTABLE)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    // Kernel data
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_0)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    // Kernel Tls
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_0)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    // User data
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_3)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    // User code
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_3)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::EXECUTABLE)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    // User data
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_3)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    // User Tls
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_3)
+            .union(GdtAccessFlags::SYSTEM)
+            .union(GdtAccessFlags::PRIVILEGE),
+        GdtEntryFlags::LONG_MODE,
+    ),
+    GdtEntry::new(
+        GdtAccessFlags::PRESENT
+            .union(GdtAccessFlags::RING_0)
+            .union(GdtAccessFlags::TSS_AVAIL),
+        GdtEntryFlags::NULL,
+    ),
+    GdtEntry::NULL,
+];
+
 /// Loads early GDT
 pub fn early_init() {
     unsafe {
         load(&mut GDT_BOOT);
 
-        // Reload registers
+        // Reload segment registers
         load_cs(SegmentSelector::new(GdtEntryType::KernelCode, Ring::Ring0));
         load_ds(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
         load_es(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
         load_ss(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
+    }
+
+    // clear gs and fs
+    fsgs::write_gs(0);
+    fsgs::write_fs(0);
+}
+
+pub fn late_init(stack: VirtAddr, cpulocal: *mut CpuLocal) {
+    let layout = Layout::for_value(&GDT_TEMPLATE);
+    let mem = heap::alloc_from_layout(layout) as *mut GdtEntry;
+
+    let gdt = unsafe { core::slice::from_raw_parts_mut(mem, GDT_SIZE) };
+
+    gdt.copy_from_slice(&GDT_TEMPLATE);
+
+    unsafe {
+        let tss = &mut (*cpulocal).tss;
+        let tss_ptr = tss as *mut Tss;
+
+        let tss_low = GdtEntryType::TssLow as usize;
+        let tss_hi = GdtEntryType::TssHi as usize;
+
+        // write tss pointer
+        gdt[tss_low].set_offset(tss_ptr as u32);
+        gdt[tss_hi].set_raw((tss_ptr as u64) >> 32);
+
+        // set tss limit
+        gdt[tss_low].set_limit(size_of::<Tss>() as u32);
+
+        tss.rsp[0] = stack;
+
+        load(gdt);
+
+        // Reload segment registers
+        load_cs(SegmentSelector::new(GdtEntryType::KernelCode, Ring::Ring0));
+        load_ds(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
+        load_es(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
+
+        ltr(SegmentSelector::new(GdtEntryType::TssLow, Ring::Ring0));
+
+        (*cpulocal).info.gdt = gdt;
     }
 }

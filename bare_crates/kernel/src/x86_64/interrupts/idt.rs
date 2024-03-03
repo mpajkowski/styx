@@ -63,6 +63,7 @@ impl Entry {
 }
 
 bitflags! {
+    #[derive(Clone, Copy)]
     struct Flags: u8 {
         const PRESENT = 1 << 7;
         const RING_0 = 0 << 5;
@@ -77,7 +78,7 @@ bitflags! {
 
 impl Flags {
     pub const fn zeroed() -> Self {
-        Flags { bits: 0 }
+        Flags::empty()
     }
 }
 
@@ -153,4 +154,8 @@ pub fn init() {
 
         load();
     }
+}
+
+pub fn init_ap() {
+    unsafe { load() }
 }

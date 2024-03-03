@@ -18,10 +18,12 @@ prepare_long:
 
     lgdt [gdt_ptr]
 
+    ; CR4 - enable PAE
     mov eax, cr4
-    or eax, 1 << 5 | 1 << 7
+    or eax, 1 << 5
     mov cr4, eax
 
+    ; EFER - long mode and no execute
     mov ecx, 0xc0000080
     rdmsr
     or eax, 1 << 11 | 1 << 8
@@ -31,6 +33,7 @@ prepare_long:
     mov edx, dword [PAGE_TABLE]
     mov cr3, edx
 
+    ; CR0 - paging, write protect, protected mode
     mov ebx, cr0
     or ebx, 1 << 31 | 1 << 16 | 1
     mov cr0, ebx

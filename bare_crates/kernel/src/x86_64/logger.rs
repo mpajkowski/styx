@@ -7,6 +7,7 @@ use spin::Once;
 
 use crate::Terminal;
 
+use super::cpulocal::CpuLocal;
 use super::drivers::Serial;
 use super::sync::Mutex;
 
@@ -20,9 +21,12 @@ struct Logger {
 
 impl Logger {
     fn log(&self, writer: &mut impl Write, record: &Record) {
-        if let Some((file, line)) = record.file().zip(record.line()) {
-            let _ = write!(writer, "{file}:{line} ");
-        }
+        let cpu = CpuLocal::obtain()
+            .map(|cpuinfo| cpuinfo.info.lapic_id)
+            .unwrap_or(0);
+
+        let _ = write!(writer, "[CPU {cpu:2}] ");
+
         let _ = write!(writer, "{:5} ", record.level().as_str());
         let _ = writer.write_fmt(*record.args());
         let _ = writer.write_char('\n');

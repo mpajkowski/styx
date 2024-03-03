@@ -126,6 +126,7 @@ impl PageTableEntry {
 
 bitflags! {
     /// Page table flags
+    #[derive(Clone, Copy, Debug)]
     pub struct PageTableFlags: u64 {
         /// Page table is marked as present
         const PRESENT = 1;

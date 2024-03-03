@@ -1,7 +1,7 @@
 //! Local APIC
 
 use easybit::set_range;
-use raw_cpuid::CpuId;
+use raw_cpuid::FeatureInfo;
 use spin::Once;
 
 use crate::x86_64::{
@@ -34,11 +34,7 @@ const ICR: u32 = 0x300;
 const LVT_ERROR: u32 = 0x370;
 
 /// Initializes LAPIC
-pub fn init() {
-    let feat = CpuId::new()
-        .get_feature_info()
-        .expect("cpuid get_feature_info() is not supported by the hardware");
-
+pub fn init(feat: &FeatureInfo) {
     let local_apic = if feat.has_x2apic() {
         log::info!("APIC: X2APIC detected");
         LocalApic::X2Apic

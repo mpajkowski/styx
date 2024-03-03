@@ -1,8 +1,8 @@
 mod handlers;
 mod idt;
+pub mod ioapic;
 pub mod lapic;
 pub mod legacy_pic;
-pub mod ioapic;
 
 pub const IDT_ENTRIES: usize = 256;
 
@@ -11,7 +11,7 @@ use core::{
     sync::atomic::{AtomicU8, Ordering},
 };
 
-pub use idt::{init, InterruptStack};
+pub use idt::{init, init_ap, InterruptStack};
 
 pub use handlers::{register_exception, register_interrupt};
 

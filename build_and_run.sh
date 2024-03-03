@@ -22,8 +22,9 @@ cp "limine/LIMINEX64.EFI" "$ESP/efi/boot/BOOTX64.EFI"
 
 # launch qemu
 qemu-system-x86_64 \
+    -cpu qemu64,apic,fsgsbase,rdtscp,xsave,fxsr \
     -enable-kvm \
-    -smp 4 \
+    -smp 2 \
     -m 512M \
     -serial stdio \
     -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_CODE.fd \
