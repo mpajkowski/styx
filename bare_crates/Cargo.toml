@@ -1,5 +1,5 @@
 [workspace]
-members = ["kernel", "limine_mini"]
+members = ["kernel", "limine_mini", "acpi"]
 resolver = "2"
 
 [workspace.dependencies]

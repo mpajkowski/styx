@@ -43,3 +43,17 @@ pub unsafe fn read_u32(port: u32) -> u32 {
     asm!("in eax, dx", out("eax") value, in("dx") port, options(nomem, nostack, preserves_flags));
     value
 }
+
+/// Halts CPU for a very small amount of time
+pub fn wait() {
+    //Wait a very small amount of time (1 to 4 microseconds, generally).
+    unsafe { write_u8(0x80, 0x00) }
+}
+
+/// Burns cycles using reading from 0x80 I/O port
+#[inline(always)]
+pub fn delay(cycles: usize) {
+    for _ in 0..cycles {
+        unsafe { read_u8(0x80) };
+    }
+}

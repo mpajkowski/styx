@@ -31,7 +31,7 @@ impl AddressSpace {
     }
 }
 
-fn read_cr3_addr() -> PhysAddr {
+pub fn read_cr3_addr() -> PhysAddr {
     let value: u64;
     unsafe {
         asm!("mov {}, cr3", out(reg) value, options(nomem, nostack, preserves_flags));

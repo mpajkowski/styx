@@ -34,7 +34,7 @@ macro_rules! set_bit {
 #[macro_export]
 macro_rules! read_range {
     ($target: expr, $range:expr) => {{
-        let high_shift = bit_sizeof!($target) - $range.end;
+        let high_shift = $crate::bit_sizeof!($target) - $range.end;
 
         ($target << high_shift >> high_shift) >> $range.start
     }};
@@ -43,7 +43,7 @@ macro_rules! read_range {
 #[macro_export]
 macro_rules! set_range {
     ($target: expr, $range:expr, $value: expr) => {{
-        let high_shift = bit_sizeof!($target) - $range.end;
+        let high_shift = $crate::bit_sizeof!($target) - $range.end;
 
         let mask = !(!(0 << high_shift) >> high_shift >> $range.start << $range.start);
 

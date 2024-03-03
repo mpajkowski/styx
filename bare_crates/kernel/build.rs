@@ -1,17 +1,13 @@
 use std::{
     env, io,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 fn main() {
     let krate = env::var("CARGO_PKG_NAME").unwrap();
 
-    build_nasm().expect("Failed to compile nasm");
-    pass_linker_script(&krate);
-}
-
-fn build_nasm() -> io::Result<()> {
-    let header_files = find_files_with_ext("src", "inc")?;
+    let header_files = find_files_with_ext("src", "inc").expect("failed to load headers");
 
     let mut include_paths = header_files
         .into_iter()
@@ -19,11 +15,17 @@ fn build_nasm() -> io::Result<()> {
         .collect::<Vec<_>>();
     include_paths.dedup();
 
+    build_trampoline(&include_paths);
+    build_nasm(&include_paths).expect("Failed to compile nasm");
+    pass_linker_script(&krate);
+}
+
+fn build_nasm(includes: &[PathBuf]) -> io::Result<()> {
     let source_files = find_files_with_ext("src", "asm")?;
 
     let mut build = nasm_rs::Build::new();
 
-    for include in &include_paths {
+    for include in includes {
         build.include(include);
     }
 
@@ -41,6 +43,30 @@ fn build_nasm() -> io::Result<()> {
     }
 
     Ok(())
+}
+
+fn build_trampoline(includes: &[PathBuf]) {
+    const TRAMPOLINE_PATH: &str = "src/x86_64/ap/trampoline.S";
+
+    println!("cargo:rerun-if-changed={TRAMPOLINE_PATH}");
+    let target_dir = format!("{}/../target", env!("CARGO_MANIFEST_DIR"));
+    let out = format!("{target_dir}/trampoline.bin");
+
+    let mut cmd = Command::new("nasm");
+
+    for include in includes {
+        cmd.arg("-I").arg(include);
+    }
+
+    let status = cmd.arg("-f")
+        .arg("bin")
+        .arg("-o")
+        .arg(out)
+        .arg(format!("{}/{TRAMPOLINE_PATH}", env!("CARGO_MANIFEST_DIR")))
+        .status()
+        .expect("nasm crashed during building trampoline");
+
+    assert!(status.success(), "nasm exited with {:?}", status.code());
 }
 
 fn pass_linker_script(krate: &str) {

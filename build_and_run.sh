@@ -4,9 +4,7 @@ set -e -x
 
 SYSTEM=$(uname -s)
 
-cd bare_crates
-cargo build --release
-cd ..
+cargo build --manifest-path bare_crates/Cargo.toml --release
 
 ESP="build/esp"
 
@@ -25,7 +23,7 @@ cp "limine/LIMINEX64.EFI" "$ESP/efi/boot/BOOTX64.EFI"
 # launch qemu
 qemu-system-x86_64 \
     -enable-kvm \
-    -smp 2 \
+    -smp 4 \
     -m 512M \
     -serial stdio \
     -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_CODE.fd \

@@ -2,6 +2,7 @@
 
 pub mod framebuffer;
 pub mod memmap;
+pub mod rsdp;
 pub mod terminal;
 
 #[macro_export]

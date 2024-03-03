@@ -5,8 +5,11 @@ mod heap;
 mod ioport;
 mod limine;
 mod logger;
+mod msr;
 
+pub mod acpi;
 pub mod addr;
+pub mod ap;
 pub mod interrupts;
 pub mod paging;
 pub mod pmm;

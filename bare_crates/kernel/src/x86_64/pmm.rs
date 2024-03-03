@@ -65,7 +65,9 @@ pub fn initialize(boot_info: &Limine) {
         log::info!("Memory map entry: {entry:?}");
     }
 
-    let usable_ranges = memory_map.entries().filter(|e| e.kind == EntryKind::Usable);
+    let usable_ranges = memory_map
+        .entries()
+        .filter(|e| e.kind == EntryKind::Usable && e.base != 0x1000);
 
     let max_addr = usable_ranges
         .clone()
