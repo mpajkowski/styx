@@ -9,7 +9,7 @@ use spin::Once;
 use acpi::platform::{ProcessorInfo, ProcessorState};
 
 use crate::{
-    arch::{interrupts::lapic, paging::address_space::read_cr3_addr, VirtAddr},
+    arch::{interrupts::lapic, registers::Cr3, VirtAddr},
     x86_64::{heap::alloc_stack, ioport::delay},
 };
 
@@ -22,7 +22,7 @@ static BSP_READY: AtomicBool = AtomicBool::new(false);
 
 extern "C" {
     /// Loads trampoline into conventional memory
-    fn load_trampoline() -> u16;
+    fn load_trampoline() -> usize;
 
     /// Sets arguments for AP
     ///
@@ -33,9 +33,6 @@ extern "C" {
     ///   * `boot_info`- limine boot info struct
     ///   * `ap_id`- AP ID read from LocalApic entry
     fn prepare_ap_launch(page_table: u64, stack_top: VirtAddr, ap_id: u8);
-
-    /// Returns trampoline size in bytes
-    fn trampoline_size() -> usize;
 
     /// Checks AP flag - if `true` then we can assume that AP boot has succeed
     fn is_ap_ready() -> bool;
@@ -52,11 +49,9 @@ pub fn start_aps() {
         return;
     }
 
-    let page_idx = unsafe { load_trampoline() };
-    log::info!(
-        "trampoline of size {} loaded, page_idx: {page_idx}",
-        unsafe { trampoline_size() }
-    );
+    let trampoline_size = unsafe { load_trampoline() };
+
+    log::info!("trampoline of size {trampoline_size} loaded");
 
     let mut bsp = lapic::local_apic();
 
@@ -95,7 +90,7 @@ fn boot_ap(apic_id: u8, bsp: &mut LocalApic) {
     let ap_stack = alloc_stack();
 
     log::trace!("preparing launch");
-    unsafe { prepare_ap_launch(read_cr3_addr().to_u64(), ap_stack, apic_id) };
+    unsafe { prepare_ap_launch(Cr3::read().phys_addr().to_u64(), ap_stack, apic_id) };
 
     log::trace!("prepared launch");
 

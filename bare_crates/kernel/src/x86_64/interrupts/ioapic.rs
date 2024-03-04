@@ -1,6 +1,5 @@
 //! Interfaces for machine's IOAPIC
 
-use crate::arch::phys_to_io;
 use crate::arch::PhysAddr;
 use acpi::platform::interrupt::Apic;
 use acpi::platform::interrupt::InterruptSourceOverride;
@@ -16,13 +15,17 @@ trait IoApicExt {
 
 impl IoApicExt for IoApic {
     unsafe fn read(&self, register: u32) -> u32 {
-        let addr = phys_to_io(PhysAddr::new_unchecked(self.address as u64)).as_mut_ptr::<u32>();
+        let addr = PhysAddr::new_unchecked(self.address as u64)
+            .to_io()
+            .as_mut_ptr::<u32>();
         addr.write_volatile(register);
         addr.add(4).read()
     }
 
     unsafe fn write(&self, register: u32, value: u32) {
-        let addr = phys_to_io(PhysAddr::new_unchecked(self.address as u64)).as_mut_ptr::<u32>();
+        let addr = PhysAddr::new_unchecked(self.address as u64)
+            .to_io()
+            .as_mut_ptr::<u32>();
         addr.write_volatile(register);
         addr.add(4).write_volatile(value);
     }
@@ -60,7 +63,6 @@ pub fn register_legacy_irq(irq: u8, vec: u8, enable: bool) {
         Some(iso) => IoApicRedirect::InterruptSourceOverride(iso),
         None => IoApicRedirect::Irq(irq),
     };
-    log::debug!("redirect: {redirect:?}");
 
     ioapic_redirect(vec, redirect, enable)
 }

@@ -2,6 +2,8 @@ use core::{fmt::Debug, ops::Add};
 
 use easybit::*;
 
+pub const IO_BASE: VirtAddr = VirtAddr::new_unchecked(0xffff_8000_0000_0000);
+
 /// Represents physical address
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -33,6 +35,11 @@ impl PhysAddr {
     /// Convert address to `u64`
     pub const fn to_u64(self) -> u64 {
         self.0
+    }
+
+    /// Converts physical to virtual using `IO_BASE` offset
+    pub const fn to_io(self) -> VirtAddr {
+        VirtAddr::new_unchecked(IO_BASE.to_u64() + self.to_u64())
     }
 }
 
@@ -196,6 +203,11 @@ impl VirtAddr {
     /// Convert address to mut ptr
     pub const fn as_mut_ptr<T>(self) -> *mut T {
         self.0 as *mut T
+    }
+
+    /// Converts virtual to physical using `IO_BASE` offset
+    pub const fn to_phys(self) -> PhysAddr {
+        PhysAddr::new_unchecked(self.to_u64() - IO_BASE.to_u64())
     }
 }
 

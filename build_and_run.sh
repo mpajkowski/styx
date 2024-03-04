@@ -2,8 +2,6 @@
 
 set -e -x
 
-SYSTEM=$(uname -s)
-
 cargo build --manifest-path bare_crates/Cargo.toml --release
 
 ESP="build/esp"

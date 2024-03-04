@@ -7,7 +7,6 @@ use spin::Once;
 use crate::x86_64::{
     interrupts,
     msr::{rdmsr, wrmsr},
-    phys_to_io,
     sync::{Mutex, MutexGuard},
     PhysAddr, VirtAddr,
 };
@@ -41,8 +40,7 @@ pub fn init(feat: &FeatureInfo) {
     } else if feat.has_apic() {
         log::info!("APIC: XAPIC detected");
         let apic_base = unsafe { rdmsr(IA32_APIC_BASE) };
-        let apic_phys = PhysAddr::new_unchecked(apic_base & 0xffff_0000);
-        let virt_base = phys_to_io(apic_phys);
+        let virt_base = PhysAddr::new_unchecked(apic_base & 0xffff_0000).to_io();
         LocalApic::XApic { addr: virt_base }
     } else {
         panic!("APIC: X2APIC nor XAPIC detected");

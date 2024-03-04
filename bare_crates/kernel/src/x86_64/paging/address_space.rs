@@ -1,7 +1,5 @@
-use core::arch::asm;
-
 use crate::{
-    arch::{phys_to_io, FRAME_SIZE, IO_BASE},
+    arch::{addr::IO_BASE, registers::Cr3},
     x86_64::PhysAddr,
 };
 
@@ -14,14 +12,12 @@ pub struct AddressSpace {
 impl AddressSpace {
     pub fn active() -> Self {
         Self {
-            addr: read_cr3_addr(),
+            addr: Cr3::read().phys_addr(),
         }
     }
 
     pub fn top_level_page_table(&mut self) -> &mut PageTable {
-        let virt = phys_to_io(self.addr);
-
-        unsafe { &mut *virt.as_mut_ptr::<PageTable>() }
+        unsafe { &mut *self.addr.to_io().as_mut_ptr::<PageTable>() }
     }
 
     pub fn offset_table(&mut self) -> OffsetTable {
@@ -29,13 +25,4 @@ impl AddressSpace {
 
         unsafe { OffsetTable::new(top_level_page_table, IO_BASE) }
     }
-}
-
-pub fn read_cr3_addr() -> PhysAddr {
-    let value: u64;
-    unsafe {
-        asm!("mov {}, cr3", out(reg) value, options(nomem, nostack, preserves_flags));
-    }
-
-    PhysAddr::new_aligned::<FRAME_SIZE>(value & 0x_000f_ffff_ffff_f000)
 }

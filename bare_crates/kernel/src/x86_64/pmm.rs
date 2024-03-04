@@ -9,10 +9,7 @@ use limine_mini::memmap::EntryKind;
 
 use crate::x86_64::limine::Limine;
 
-use super::{sync::Mutex, PhysAddr, VirtAddr};
-
-pub const IO_BASE: VirtAddr = VirtAddr::new_unchecked(0xffff_8000_0000_0000);
-pub const KERNEL_BASE: VirtAddr = VirtAddr::new_unchecked(0xffff_ffff_8000_0000);
+use super::{sync::Mutex, PhysAddr};
 pub const FRAME_SIZE: u64 = 0x1000;
 
 static FRAME_ALLOC: Mutex<Option<PhysAlloc>> = Mutex::new(None);
@@ -36,26 +33,6 @@ impl PhysAlloc {
     pub fn alloc<A: From<u64>>(&mut self, size: usize) -> Option<A> {
         self.bitmap_alloc.alloc(size)
     }
-}
-
-/// Converts physical to virtual using `IO_BASE` offset
-pub const fn phys_to_io(phys_addr: PhysAddr) -> VirtAddr {
-    VirtAddr::new_unchecked(IO_BASE.to_u64() + phys_addr.to_u64())
-}
-
-/// Converts physical to kernel using `KERNEL_BASE` offset
-pub const fn phys_to_kernel(phys_addr: PhysAddr) -> VirtAddr {
-    VirtAddr::new_unchecked(KERNEL_BASE.to_u64() + phys_addr.to_u64())
-}
-
-/// Converts virtual to physical using `IO_BASE` offset
-pub const fn io_to_phys(io_addr: VirtAddr) -> PhysAddr {
-    PhysAddr::new_unchecked(io_addr.to_u64() - IO_BASE.to_u64())
-}
-
-/// Converts kernel to physical using `KERNEL_BASE` offset
-pub const fn kernel_to_phys(kernel_addr: VirtAddr) -> PhysAddr {
-    PhysAddr::new_unchecked(kernel_addr.to_u64() - KERNEL_BASE.to_u64())
 }
 
 pub fn initialize(boot_info: &Limine) {
@@ -85,7 +62,7 @@ pub fn initialize(boot_info: &Limine) {
         .clone()
         .find_map(|e| {
             (e.len <= storage_len).then(|| {
-                let start = phys_to_io(PhysAddr::new_aligned::<FRAME_SIZE>(e.base)).to_u64()
+                let start = PhysAddr::new_aligned::<FRAME_SIZE>(e.base).to_io().to_u64()
                     as *const u64 as *mut u64 as *mut u8;
                 let storage = unsafe { slice::from_raw_parts_mut(start, storage_len as usize) };
 

@@ -1,4 +1,8 @@
+use core::arch::asm;
+
 use bitflags::bitflags;
+
+use crate::{arch::FRAME_SIZE, x86_64::PhysAddr};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
@@ -41,13 +45,13 @@ macro_rules! impl_cr {
             /// Read value from register
             pub fn read() -> Self {
                 let val: u64;
-                unsafe { core::arch::asm!(concat!("mov {}, cr", $num), out(reg) val, options(nomem, nostack, preserves_flags)) };
+                unsafe { asm!(concat!("mov {}, cr", $num), out(reg) val, options(nomem, nostack, preserves_flags)) };
                 Self::from_bits_truncate(val)
             }
 
             /// Write value to register
             pub fn write(self)  {
-                unsafe { core::arch::asm!(concat!("mov cr", $num, ", {}"), in(reg) self.bits()) };
+                unsafe { asm!(concat!("mov cr", $num, ", {}"), in(reg) self.bits()) };
             }
         }
     }
@@ -75,6 +79,27 @@ bitflags! {
 }
 
 impl_cr!(Cr0, 0);
+
+#[derive(Debug, Clone, Copy)]
+pub struct Cr3(PhysAddr);
+
+impl Cr3 {
+    pub fn read() -> Self {
+        let val: u64;
+
+        unsafe {
+            asm!("mov {}, cr3", out(reg) val, options(nomem, nostack, preserves_flags));
+        }
+
+        Self(PhysAddr::new_aligned::<FRAME_SIZE>(
+            val & 0x_000f_ffff_ffff_f000,
+        ))
+    }
+
+    pub fn phys_addr(self) -> PhysAddr {
+        self.0
+    }
+}
 
 bitflags! {
     #[derive(Clone, Copy, Debug)]

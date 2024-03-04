@@ -2,7 +2,7 @@ use core::ptr::NonNull;
 
 use acpi::{AcpiHandler, InterruptModel, PlatformInfo};
 
-use crate::arch::{ap, interrupts::ioapic, io_to_phys, phys_to_io, PhysAddr, VirtAddr};
+use crate::arch::{ap, interrupts::ioapic, PhysAddr, VirtAddr};
 
 use super::limine::Limine;
 
@@ -14,7 +14,9 @@ pub fn init(boot_info: &Limine) -> Result<(), acpi::AcpiError> {
     let tables = unsafe {
         acpi::AcpiTables::from_rsdp(
             VirtToPhysAcpiHandler,
-            io_to_phys(VirtAddr::new_unchecked(rsdp.as_ptr() as u64)).to_u64() as usize,
+            VirtAddr::new_unchecked(rsdp.as_ptr() as u64)
+                .to_phys()
+                .to_u64() as usize,
         )
     }?;
 
@@ -50,7 +52,7 @@ impl AcpiHandler for VirtToPhysAcpiHandler {
         size: usize,
     ) -> acpi::PhysicalMapping<Self, T> {
         let addr = PhysAddr::new_unchecked(physical_address as u64);
-        let virt = NonNull::new(phys_to_io(addr).as_mut_ptr()).expect("null addr");
+        let virt = NonNull::new(addr.to_io().as_mut_ptr()).expect("null addr");
 
         acpi::PhysicalMapping::new(physical_address, virt, size, size, *self)
     }
