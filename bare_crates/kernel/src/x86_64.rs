@@ -1,6 +1,5 @@
 mod drivers;
 mod entrypoint;
-mod gdt;
 mod heap;
 mod ioport;
 mod limine;
@@ -12,11 +11,11 @@ pub mod addr;
 pub mod ap;
 pub mod cpulocal;
 pub mod features;
-pub mod fsgs;
 pub mod interrupts;
 pub mod paging;
 pub mod pmm;
 pub mod registers;
+pub mod segmentation;
 pub mod sync;
 
 pub use addr::{PhysAddr, VirtAddr, VirtAddrInvalid};

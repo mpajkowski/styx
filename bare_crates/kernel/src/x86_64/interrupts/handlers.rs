@@ -11,7 +11,7 @@ pub type ExceptionHandler = fn(u64, &mut InterruptStack);
 
 struct Handlers {
     entries: UnsafeCell<[Handler; IDT_ENTRIES]>,
-    counter_lock: Mutex<usize>,
+    counter_lock: Mutex<u8>,
 }
 
 impl Handlers {
@@ -33,14 +33,14 @@ impl Handlers {
         entries[index] = Handler::Exception(handler);
     }
 
-    fn register_interrupt(&self, handler: InterruptHandler) -> usize {
+    fn register_interrupt(&self, handler: InterruptHandler) -> u8 {
         let mut counter = self.counter_lock.lock_disabling_interrupts();
 
         let index = *counter;
 
         // SAFETY: protected by counter_lock mutex guard
         let entries = unsafe { &mut *self.entries.get() };
-        entries[index] = Handler::Interrupt(handler);
+        entries[index as usize] = Handler::Interrupt(handler);
 
         *counter += 1;
 
@@ -74,7 +74,7 @@ impl Handler {
     }
 }
 
-pub fn register_interrupt(handler: InterruptHandler) -> usize {
+pub fn register_interrupt(handler: InterruptHandler) -> u8 {
     HANDLERS.register_interrupt(handler)
 }
 

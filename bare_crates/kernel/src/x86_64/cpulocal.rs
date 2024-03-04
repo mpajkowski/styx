@@ -1,9 +1,8 @@
 use crate::arch::VirtAddr;
 
 use super::{
-    fsgs,
-    gdt::{self, GdtEntry, Tss},
     heap,
+    segmentation::{self, write_gs, GdtEntry, Tss},
 };
 
 /// Stores per-cpu local data
@@ -16,7 +15,7 @@ pub struct CpuLocal {
 
 impl CpuLocal {
     pub fn obtain() -> Option<&'static mut Self> {
-        let ptr = fsgs::read_gs();
+        let ptr = segmentation::read_gs();
 
         if ptr == 0 {
             return None;
@@ -42,7 +41,6 @@ pub fn init(lapic_id: u64, stack: VirtAddr) {
         (*cpulocal).info = &mut *cpuinfo;
     }
 
-    gdt::late_init(stack, cpulocal);
-
-    fsgs::write_gs(cpulocal as u64);
+    segmentation::late_init(stack, unsafe { &mut *cpulocal });
+    write_gs(cpulocal as u64);
 }

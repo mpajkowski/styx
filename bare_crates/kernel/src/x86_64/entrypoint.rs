@@ -1,19 +1,19 @@
 use crate::arch::ap;
 use crate::arch::cpulocal;
 use crate::arch::features;
-use crate::arch::fsgs;
 use crate::arch::interrupts::lapic;
 use crate::arch::sync::hlt;
 use crate::arch::VirtAddr;
+use crate::x86_64::drivers as x86_64_drivers;
 use crate::x86_64::heap;
 use crate::x86_64::interrupts;
 use crate::x86_64::limine::Limine;
 
 use super::acpi;
 use super::drivers;
-use super::gdt;
 use super::logger;
 use super::pmm;
+use super::segmentation;
 
 #[no_mangle]
 pub extern "C" fn _x86_64_bsp_entrypoint() {
@@ -29,15 +29,13 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     logger::initialize(com1, terminal);
     log::info!("Installed logger");
 
-    let (features, _ext_features) = features::init();
+    let (features, ext_features) = features::init();
 
     log::info!("Installing early GDT");
-    gdt::early_init();
+    segmentation::early_init(&ext_features);
 
     log::info!("Installing interrupts");
     interrupts::init();
-
-    interrupts::legacy_pic::init();
 
     pmm::initialize(&boot_info);
     heap::initialize();
@@ -54,10 +52,12 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
     cpulocal::init(interrupts::lapic::local_apic().bsp_id() as u64, stack);
 
-    log::info!("Through the jungle by the river Styx");
-    log::info!("I've journed long and far this day");
+    x86_64_drivers::ps2::init();
 
     ap::set_bsp_ready();
+
+    log::info!("Through the jungle by the river Styx");
+    log::info!("I've journed long and far this day");
 
     super::sync::enable_interrupts();
 
@@ -68,7 +68,8 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
 #[no_mangle]
 pub extern "C" fn _x86_64_ap_entrypoint(ap_id: u64, stack_top_addr: VirtAddr) {
-    gdt::early_init();
+    let (_features, ext_features) = features::init();
+    segmentation::early_init(&ext_features);
     interrupts::init_ap();
     cpulocal::init(ap_id, stack_top_addr);
 

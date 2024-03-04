@@ -2,12 +2,19 @@
 
 use core::{alloc::Layout, arch::asm, fmt::Debug, mem::size_of};
 
-use crate::arch::VirtAddr;
+use raw_cpuid::ExtendedFeatures;
+
+use crate::arch::{registers::Cr4, VirtAddr};
 
 use super::{
     cpulocal::{self, CpuInfo, CpuLocal},
-    fsgs, heap, DescriptorPointer,
+    heap, DescriptorPointer,
 };
+
+static mut READ_FS: unsafe fn() -> u64 = impl_msr::read_fs;
+static mut READ_GS: unsafe fn() -> u64 = impl_msr::read_gs;
+static mut WRITE_FS: unsafe fn(u64) = impl_msr::write_fs;
+static mut WRITE_GS: unsafe fn(u64) = impl_msr::write_gs;
 
 bitflags::bitflags! {
     pub struct GdtEntryFlags: u8 {
@@ -126,24 +133,13 @@ impl GdtEntry {
 ///
 /// NOTE the `&mut` - enforces that GDT table is placed within writable region
 #[inline(always)]
-unsafe fn load(table: &mut [GdtEntry]) {
+unsafe fn load_gdt(table: &mut [GdtEntry]) {
     let ptr = DescriptorPointer {
         size: (core::mem::size_of_val(table) - 1) as u16,
         address: VirtAddr::new(table.as_ptr() as u64),
     };
 
     asm!("lgdt [{}]", in(reg) &ptr, options(nostack));
-}
-
-/// Loads `SegmentSelector` using `ltr` instruction
-///
-/// ## Safety
-///
-/// Caller must ensure that built IDT is valid and `DescriptorPointer`
-/// points to valid virtual address
-#[inline]
-pub unsafe fn ltr(sel: SegmentSelector) {
-    asm!("ltr {0:x}", in(reg) sel.0, options(nomem, nostack, preserves_flags));
 }
 
 #[repr(transparent)]
@@ -216,9 +212,9 @@ unsafe fn load_ds(selector: SegmentSelector) {
     asm!("mov ds, {0:x}", in(reg) selector.0, options(nomem, nostack))
 }
 
-pub unsafe fn get_cs() -> SegmentSelector {
+pub fn get_cs() -> SegmentSelector {
     let segment: u16;
-    asm!("mov {0:x}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
+    unsafe { asm!("mov {0:x}, cs", out(reg) segment, options(nomem, nostack, preserves_flags)) };
 
     SegmentSelector(segment)
 }
@@ -226,16 +222,6 @@ pub unsafe fn get_cs() -> SegmentSelector {
 #[inline(always)]
 unsafe fn load_es(selector: SegmentSelector) {
     asm!("mov es, {0:x}", in(reg) selector.0, options(nomem, nostack))
-}
-
-#[inline(always)]
-unsafe fn load_fs(selector: SegmentSelector) {
-    asm!("mov fs, {0:x}", in(reg) selector.0, options(nomem, nostack))
-}
-
-#[inline(always)]
-unsafe fn load_gs(selector: SegmentSelector) {
-    asm!("mov gs, {0:x}", in(reg) selector.0, options(nomem, nostack))
 }
 
 #[inline(always)]
@@ -341,9 +327,20 @@ const GDT_TEMPLATE: [GdtEntry; GDT_SIZE] = [
 ];
 
 /// Loads early GDT
-pub fn early_init() {
+pub fn early_init(feat: &ExtendedFeatures) {
+    if feat.has_fsgsbase() {
+        Cr4::read().union(Cr4::FSGSBASE).write();
+
+        unsafe {
+            READ_FS = impl_fsgsbase::read_fs;
+            READ_GS = impl_fsgsbase::read_gs;
+            WRITE_FS = impl_fsgsbase::write_fs;
+            WRITE_GS = impl_fsgsbase::write_gs;
+        }
+    }
+
     unsafe {
-        load(&mut GDT_BOOT);
+        load_gdt(&mut GDT_BOOT);
 
         // Reload segment registers
         load_cs(SegmentSelector::new(GdtEntryType::KernelCode, Ring::Ring0));
@@ -353,11 +350,11 @@ pub fn early_init() {
     }
 
     // clear gs and fs
-    fsgs::write_gs(0);
-    fsgs::write_fs(0);
+    write_gs(0);
+    write_fs(0);
 }
 
-pub fn late_init(stack: VirtAddr, cpulocal: *mut CpuLocal) {
+pub fn late_init(stack: VirtAddr, cpulocal: &mut CpuLocal) {
     let layout = Layout::for_value(&GDT_TEMPLATE);
     let mem = heap::alloc_from_layout(layout) as *mut GdtEntry;
 
@@ -366,7 +363,7 @@ pub fn late_init(stack: VirtAddr, cpulocal: *mut CpuLocal) {
     gdt.copy_from_slice(&GDT_TEMPLATE);
 
     unsafe {
-        let tss = &mut (*cpulocal).tss;
+        let tss = &mut cpulocal.tss;
         let tss_ptr = tss as *mut Tss;
 
         let tss_low = GdtEntryType::TssLow as usize;
@@ -381,15 +378,83 @@ pub fn late_init(stack: VirtAddr, cpulocal: *mut CpuLocal) {
 
         tss.rsp[0] = stack;
 
-        load(gdt);
+        load_gdt(gdt);
 
         // Reload segment registers
         load_cs(SegmentSelector::new(GdtEntryType::KernelCode, Ring::Ring0));
         load_ds(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
         load_es(SegmentSelector::new(GdtEntryType::KernelData, Ring::Ring0));
 
-        ltr(SegmentSelector::new(GdtEntryType::TssLow, Ring::Ring0));
+        load_tss(SegmentSelector::new(GdtEntryType::TssLow, Ring::Ring0));
 
-        (*cpulocal).info.gdt = gdt;
+        cpulocal.info.gdt = gdt;
+    }
+}
+
+#[inline(always)]
+pub fn read_fs() -> u64 {
+    unsafe { READ_FS() }
+}
+
+#[inline(always)]
+pub fn read_gs() -> u64 {
+    unsafe { READ_GS() }
+}
+
+#[inline(always)]
+pub fn write_fs(val: u64) {
+    unsafe { WRITE_FS(val) }
+}
+
+#[inline(always)]
+pub fn write_gs(val: u64) {
+    unsafe { WRITE_GS(val) }
+}
+
+mod impl_msr {
+    use crate::x86_64::msr;
+
+    const IA32_FS_BASE: u32 = 0xc0000100;
+    const IA32_GS_BASE: u32 = 0xc0000101;
+    //const IA32_KERNEL_GS_BASE: u32 = 0xc0000102;
+
+    pub unsafe fn read_fs() -> u64 {
+        msr::rdmsr(IA32_FS_BASE)
+    }
+
+    pub unsafe fn read_gs() -> u64 {
+        msr::rdmsr(IA32_GS_BASE)
+    }
+
+    pub unsafe fn write_fs(val: u64) {
+        msr::wrmsr(IA32_FS_BASE, val)
+    }
+
+    pub unsafe fn write_gs(val: u64) {
+        msr::wrmsr(IA32_GS_BASE, val)
+    }
+}
+
+mod impl_fsgsbase {
+    use core::arch::asm;
+
+    pub unsafe fn read_fs() -> u64 {
+        let val: u64;
+        asm!("rdfsbase {}", out(reg) val);
+        val
+    }
+
+    pub unsafe fn read_gs() -> u64 {
+        let val: u64;
+        asm!("rdgsbase {}", out(reg) val);
+        val
+    }
+
+    pub unsafe fn write_fs(val: u64) {
+        asm!("wrfsbase {}", in(reg) val);
+    }
+
+    pub unsafe fn write_gs(val: u64) {
+        asm!("wrgsbase {}", in(reg) val);
     }
 }

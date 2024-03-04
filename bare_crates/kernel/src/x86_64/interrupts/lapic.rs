@@ -123,8 +123,6 @@ impl LocalApic {
 
         let vec = interrupts::register_interrupt(on_interrupt);
         self.write_u32(LVT_ERROR, vec as u32);
-
-        interrupts::switch_to_apic();
     }
 
     fn read_u32(&self, register: u32) -> u32 {

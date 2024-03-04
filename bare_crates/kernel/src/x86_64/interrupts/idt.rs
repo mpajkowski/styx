@@ -9,7 +9,7 @@ use crate::{
         VirtAddr,
     },
     x86_64::{
-        gdt::{self, SegmentSelector},
+        segmentation::{self, SegmentSelector},
         DescriptorPointer,
     },
 };
@@ -53,7 +53,7 @@ impl Entry {
     fn set_handler_addr(&mut self, addr: VirtAddr) {
         let addr = addr.to_u64();
 
-        self.gdt_selector = unsafe { gdt::get_cs() };
+        self.gdt_selector = segmentation::get_cs();
         self.flags = Flags::PRESENT | Flags::RING_0 | Flags::INTERRUPT;
 
         self.ptr_low = addr as u16;
@@ -99,8 +99,6 @@ pub struct InterruptStack {
 
 #[no_mangle]
 pub extern "C" fn generic_irq_handler(isr: u64, stack: *mut InterruptErrorStack) {
-    log::debug!("Exception: {isr}");
-
     let stack = unsafe { &mut *stack };
 
     handlers::handle(isr, stack);
