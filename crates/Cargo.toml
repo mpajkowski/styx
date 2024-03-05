@@ -1,3 +1,0 @@
-[workspace]
-members = ["easybit", "frame-alloc", "ds"]
-resolver = "2"

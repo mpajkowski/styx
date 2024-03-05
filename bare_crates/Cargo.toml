@@ -1,8 +1,0 @@
-[workspace]
-members = ["kernel", "limine_mini", "acpi"]
-resolver = "2"
-
-[workspace.dependencies]
-easybit = { path = "../crates/easybit" }
-frame-alloc = { path = "../crates/frame-alloc" }
-ds = { path = "../crates/ds" }

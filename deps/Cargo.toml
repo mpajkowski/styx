@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "limine_mini",
+    "easybit",
+    "frame-alloc",
+    "ds",
+    "config",
+    "acpi",
+]
+
+resolver = "2"
