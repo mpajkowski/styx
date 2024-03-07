@@ -1,11 +1,11 @@
-use core::{fmt, mem::MaybeUninit};
+use core::{fmt, mem::MaybeUninit, slice};
 
 use crate::arch::sync::Mutex;
 
 static FRAMEBUFFER: Mutex<MaybeUninit<Framebuffer>> = Mutex::new(MaybeUninit::uninit());
 
 pub struct Framebuffer {
-    fb: &'static mut [u32],
+    fb: &'static mut [RgbPixel],
     width: u64,
     height: u64,
     pitch: u64,
@@ -26,9 +26,17 @@ impl fmt::Debug for Framebuffer {
 }
 
 impl Framebuffer {
-    pub const BACKGROUND: Color = Color::from_rgb(0x1d, 0x1f, 0x21);
+    pub const BACKGROUND: RgbPixel = RgbPixel::from_rgb(0x1d, 0x1f, 0x21);
 
     pub fn new(slice: &'static mut [u32], width: u64, height: u64, pitch: u64, bpp: u16) -> Self {
+        let slice = {
+            let ptr = slice.as_mut_ptr() as *mut RgbPixel;
+            let len = slice.len();
+
+            // safety: RgbPixel is a newtype wrapper
+            unsafe { slice::from_raw_parts_mut(ptr, len) }
+        };
+
         let mut this = Self {
             fb: slice,
             width,
@@ -55,7 +63,7 @@ impl Framebuffer {
     }
 
     pub fn clear(&mut self) {
-        self.fb.fill(Self::BACKGROUND.0);
+        self.fb.fill(Self::BACKGROUND);
     }
 
     pub fn with_handle<T>(mut fun: impl FnMut(&Self) -> T) -> T {
@@ -70,7 +78,7 @@ impl Framebuffer {
         fun(this)
     }
 
-    pub fn put_pixel_at_point(&mut self, point: Point, color: Color) {
+    pub fn put_pixel_at_point(&mut self, point: Point, color: RgbPixel) {
         let x = (point.x as u64).min(self.width - 1);
         let y = (point.y as u64).min(self.height - 1);
         let target = x + y * self.width;
@@ -78,8 +86,41 @@ impl Framebuffer {
         self.put_pixel_at_pos(target as usize, color);
     }
 
-    pub fn put_pixel_at_pos(&mut self, pos: usize, color: Color) {
-        self.fb[pos] = color.0;
+    pub fn put_pixel_at_pos(&mut self, pos: usize, color: RgbPixel) {
+        self.fb[pos] = color;
+    }
+
+    pub fn put_from_point(&mut self, start: Point, pixels: impl Iterator<Item = RgbPixel>) {
+        let pos = self.pos(start);
+        //todo copy from slice?
+        pixels
+            .enumerate()
+            .for_each(|(offset, pix)| self.put_pixel_at_pos(pos + offset, pix));
+    }
+
+    pub fn put_bitmap(&mut self, width: u64, bitmap: &[u8]) {
+        let width = width.min(self.width) as usize;
+
+        let mut nw_corner = Point::new(0, 0);
+
+        let pix_lines = bitmap
+            .chunks(3 * width)
+            .map(|line| line.chunks(3).map(RgbPixel::from_rgb_slice));
+
+        for pix_line in pix_lines {
+            if nw_corner.y as u64 == self.height - 1 {
+                return;
+            }
+
+            nw_corner.y += 1;
+            self.put_from_point(nw_corner, pix_line);
+        }
+    }
+
+    pub fn pos(&self, point: Point) -> usize {
+        let x = (point.x as u64).min(self.width - 1);
+        let y = (point.y as u64).min(self.height - 1);
+        (x + y * self.width) as usize
     }
 }
 
@@ -96,9 +137,10 @@ impl Point {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct Color(pub u32);
+#[repr(transparent)]
+pub struct RgbPixel(pub u32);
 
-impl Color {
+impl RgbPixel {
     /// Red color
     pub const RED: Self = Self(0x00ff_0000);
     /// Green color
@@ -112,7 +154,11 @@ impl Color {
         Self(color)
     }
 
-    pub const fn apply_intensity(self, intensity: u8) -> Color {
+    pub const fn from_rgb_slice(rgb_slice: &[u8]) -> Self {
+        Self::from_rgb(rgb_slice[0], rgb_slice[1], rgb_slice[2])
+    }
+
+    pub const fn apply_intensity(self, intensity: u8) -> RgbPixel {
         let mut r = (self.0 >> 16) as u8;
         let mut g = (self.0 >> 8) as u8;
         let mut b = self.0 as u8;

@@ -16,5 +16,5 @@ impl Response {
 }
 
 make_struct!(
-    struct Request: [0xc5e77b6b397e7b43, 0x27637845accdcf3c] => Response {};
+    struct Request: [0xc5e77b6b397e7b43, 0x27637845accdcf3c] => Response {}
 );

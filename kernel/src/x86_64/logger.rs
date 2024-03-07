@@ -6,7 +6,7 @@ use config::Config;
 use log::{Log, Record};
 use spin::Once;
 
-use crate::Terminal;
+use crate::{Framebuffer, Terminal};
 
 use super::cpulocal::CpuLocal;
 use super::drivers::Serial;
@@ -22,12 +22,13 @@ struct Logger {
 
 struct Writers {
     serial: Option<Serial>,
-    terminal: Terminal,
+    terminal: Option<Terminal>,
 }
 
 impl Writers {
     pub fn new(serial: Serial, terminal: Terminal, config: &Config) -> Self {
         let serial = config.com1.then_some(serial);
+        let terminal = Some(terminal);
 
         Self { serial, terminal }
     }
@@ -37,7 +38,9 @@ impl Writers {
             logger.log(serial, record);
         }
 
-        logger.log(&mut self.terminal, record);
+        if let Some(terminal) = self.terminal.as_mut() {
+            logger.log(terminal, record);
+        }
     }
 }
 
@@ -52,6 +55,11 @@ impl Logger {
         let _ = write!(writer, "{:5} ", record.level().as_str());
         let _ = writer.write_fmt(*record.args());
         let _ = writer.write_char('\n');
+    }
+
+    fn disable_terminal(&self) {
+        let mut writers = self.writers.lock_disabling_interrupts();
+        writers.terminal = None;
     }
 }
 
@@ -85,4 +93,11 @@ pub fn initialize(serial: Serial, terminal: Terminal, config: &Config) {
     log::set_logger(logger)
         .map(|_| log::set_max_level(config.log))
         .unwrap();
+}
+
+pub fn disable_terminal() {
+    if let Some(logger) = LOGGER.get() {
+        logger.disable_terminal();
+        Framebuffer::with_handle_mut(|fb| fb.clear());
+    }
 }

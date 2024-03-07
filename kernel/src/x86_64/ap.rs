@@ -66,8 +66,6 @@ pub fn start_aps() {
     cpus[0] = true;
 
     for processor in processors {
-        log::info!("processor: {processor:?}");
-
         let lapic_id = processor.local_apic_id as u8;
 
         log::debug!("APIC ID: {lapic_id}");

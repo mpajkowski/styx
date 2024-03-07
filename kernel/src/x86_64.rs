@@ -12,6 +12,7 @@ pub mod ap;
 pub mod cpulocal;
 pub mod features;
 pub mod interrupts;
+pub mod modules;
 pub mod paging;
 pub mod pmm;
 pub mod registers;

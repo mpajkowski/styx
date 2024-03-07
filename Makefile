@@ -3,13 +3,13 @@ SMP=2
 MEM=512M
 KERNEL_BIN=kernel/target/x86_64-unknown-none/release/kernel
 
-default: test build-kernel
+default: test build-kernel-x86_64
 
 test:
 	cd deps && cargo test
 
-build-kernel:
-	cd kernel && cargo build --release
+build-kernel-x86_64:
+	cd kernel && cargo build --release --target x86_64-unknown-none
 
 create-esp-dirs:
 	mkdir -p $(ESP)/efi/boot
@@ -20,7 +20,7 @@ deploy-limine: create-esp-dirs
 deploy-assets: create-esp-dirs
 	cp assets/* $(ESP)
 
-deploy-kernel: create-esp-dirs build-kernel
+deploy-kernel: create-esp-dirs build-kernel-x86_64
 	cp $(KERNEL_BIN) $(ESP)
 
 deploy: deploy-kernel deploy-assets deploy-limine

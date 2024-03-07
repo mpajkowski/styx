@@ -1,10 +1,13 @@
 #![no_std]
 
+pub mod file;
 pub mod framebuffer;
 pub mod kernel;
 pub mod memmap;
+pub mod module;
 pub mod rsdp;
-pub mod terminal;
+
+pub(crate) mod utils;
 
 #[macro_export]
 macro_rules! make_struct {
@@ -12,7 +15,7 @@ macro_rules! make_struct {
         $(#[$meta:meta])*
         struct $name:ident: [$id1:expr, $id2:expr] => $response_ty:ty {
             $($(#[$field_meta:meta])* $field_name:ident : $field_ty:ty = $field_default:expr),*
-        };
+        }
     ) => {
         $(#[$meta])*
         #[repr(C)]
@@ -35,7 +38,6 @@ macro_rules! make_struct {
             // two remain constant. This is refered as `LIMINE_COMMON_MAGIC` in the limine protocol
             // header.
             pub const ID: [u64; 4] = [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, $id1, $id2];
-
 
             pub const fn new(revision: u64) -> Self {
                 Self {

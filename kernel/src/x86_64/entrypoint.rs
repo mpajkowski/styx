@@ -2,12 +2,14 @@ use crate::arch::ap;
 use crate::arch::cpulocal;
 use crate::arch::features;
 use crate::arch::interrupts::lapic;
+use crate::arch::modules::Modules;
 use crate::arch::sync::hlt;
 use crate::arch::VirtAddr;
 use crate::x86_64::drivers as x86_64_drivers;
 use crate::x86_64::heap;
 use crate::x86_64::interrupts;
 use crate::x86_64::limine::Limine;
+use crate::Framebuffer;
 
 use super::acpi;
 use super::drivers;
@@ -63,9 +65,17 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     log::info!("Through the jungle by the river Styx");
     log::info!("I've journed long and far this day");
 
-    super::sync::enable_interrupts();
-
     log::info!("BSP ready");
+    let modules = Modules::from_boot_info(boot_info.module.modules());
+    if let Some(rudzik) = modules.by_path("/rudzik.data") {
+        logger::disable_terminal();
+        Framebuffer::with_handle_mut(|fb| fb.put_bitmap(357, rudzik));
+    } else {
+        log::warn!(
+            "Rudzik was not loaded, I wanted to panic but decided not to do so, but beware!"
+        );
+    }
+    super::sync::enable_interrupts();
 
     crate::main();
 }

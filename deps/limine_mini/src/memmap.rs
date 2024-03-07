@@ -52,14 +52,10 @@ pub struct Response {
 
 impl Response {
     pub fn entries(&self) -> impl Iterator<Item = &Entry> + Clone {
-        unsafe {
-            core::slice::from_raw_parts(self.entries, self.entry_count as usize)
-                .iter()
-                .map(|entry| &**entry)
-        }
+        crate::utils::iter(self.entries, self.entry_count)
     }
 }
 
 make_struct!(
-    struct Request: [0x67cf3d9d378a806f, 0xe304acdfc50c3c62] => Response {};
+    struct Request: [0x67cf3d9d378a806f, 0xe304acdfc50c3c62] => Response {}
 );

@@ -3,13 +3,8 @@ build-std = ["core", "compiler_builtins", "alloc"]
 build-std-features = ["compiler-builtins-mem"]
 
 [build]
-target = "x86_64-unknown-none"
 rustflags = [
     "-Cforce-frame-pointers=yes",
     "-Clink-args=-no-pie",
     "-Clink-args=--script=linker.ld",
 ]
-
-
-[alias]
-workspace-test = "test --workspace --exclude kernel"

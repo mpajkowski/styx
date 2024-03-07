@@ -43,11 +43,7 @@ impl Framebuffer {
     }
 
     pub fn modes(&self) -> impl Iterator<Item = &VideoMode> {
-        unsafe {
-            core::slice::from_raw_parts(self.modes, self.mode_count as usize)
-                .iter()
-                .map(|x| &**x)
-        }
+        crate::utils::iter(self.modes, self.mode_count)
     }
 }
 
@@ -61,15 +57,11 @@ pub struct Response {
 
 impl Response {
     pub fn framebuffers(&self) -> impl Iterator<Item = &Framebuffer> {
-        unsafe {
-            core::slice::from_raw_parts(self.framebuffers, self.framebuffer_count as usize)
-                .iter()
-                .map(|x| &**x)
-        }
+        crate::utils::iter(self.framebuffers, self.framebuffer_count)
     }
 }
 
 crate::make_struct!(
     /// Omitting this request will cause the bootloader to not initialise the framebuffer
-     struct Request: [ 0x9d5827dcd881dd75, 0xa3148604f6fab11b] => Response {};
+     struct Request: [ 0x9d5827dcd881dd75, 0xa3148604f6fab11b] => Response {}
 );
