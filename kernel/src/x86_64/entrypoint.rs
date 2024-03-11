@@ -2,10 +2,13 @@ use crate::arch::ap;
 use crate::arch::cpulocal;
 use crate::arch::features;
 use crate::arch::interrupts::lapic;
+use crate::arch::interrupts::pic;
+use crate::arch::kernel_elf;
 use crate::arch::modules::Modules;
 use crate::arch::sync::hlt;
 use crate::arch::VirtAddr;
-use crate::x86_64::drivers as x86_64_drivers;
+use crate::x86_64::drivers::pit;
+use crate::x86_64::drivers::ps2;
 use crate::x86_64::heap;
 use crate::x86_64::interrupts;
 use crate::x86_64::limine::Limine;
@@ -26,6 +29,8 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     let cmdline = boot_info.kernel.cmdline();
     let config = config::Config::from_cmdline(cmdline);
 
+    kernel_elf::from_boot_info(&boot_info);
+
     let com1 = drivers::Serial::init_com1().unwrap();
     let framebuffer = boot_info.framebuffer();
     let terminal = crate::Terminal::new(framebuffer.width(), framebuffer.height());
@@ -33,7 +38,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
     logger::initialize(com1, terminal, &config);
     log::info!("Installed logger");
-    log::info!("cmdline: {:?}", boot_info.kernel.cmdline());
+    log::info!("cmdline: {:?}", config.cmdline);
 
     let (features, ext_features) = features::init();
 
@@ -42,6 +47,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
     log::info!("Installing interrupts");
     interrupts::init();
+    pic::remap_and_disable();
 
     pmm::initialize(&boot_info);
     heap::initialize();
@@ -58,8 +64,6 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
     cpulocal::init(interrupts::lapic::local_apic().bsp_id() as u64, stack);
 
-    x86_64_drivers::ps2::init();
-
     ap::set_bsp_ready();
 
     log::info!("Through the jungle by the river Styx");
@@ -75,6 +79,10 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
             "Rudzik was not loaded, I wanted to panic but decided not to do so, but beware!"
         );
     }
+
+    ps2::init();
+    pit::init();
+
     super::sync::enable_interrupts();
 
     crate::main();

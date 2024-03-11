@@ -2,6 +2,7 @@ mod handlers;
 mod idt;
 pub mod ioapic;
 pub mod lapic;
+pub mod pic;
 
 pub const IDT_ENTRIES: usize = 256;
 

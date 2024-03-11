@@ -1,7 +1,7 @@
 ESP=build/esp
 SMP=2
 MEM=512M
-KERNEL_BIN=kernel/target/x86_64-unknown-none/release/kernel
+KERNEL_BIN=kernel/target/x86_64-unknown-none/debug/kernel
 
 default: test build-kernel-x86_64
 
@@ -9,7 +9,7 @@ test:
 	cd deps && cargo test
 
 build-kernel-x86_64:
-	cd kernel && cargo build --release --target x86_64-unknown-none
+	cd kernel && cargo build -vvvv --target x86_64-unknown-none
 
 create-esp-dirs:
 	mkdir -p $(ESP)/efi/boot

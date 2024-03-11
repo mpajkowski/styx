@@ -1,5 +1,3 @@
-use core::cell::UnsafeCell;
-
 use crate::arch::sync::Mutex;
 
 use super::{idt::InterruptErrorStack, InterruptStack, IDT_ENTRIES};
@@ -10,47 +8,66 @@ pub type InterruptHandler = fn(&mut InterruptStack);
 pub type ExceptionHandler = fn(u64, &mut InterruptStack);
 
 struct Handlers {
-    entries: UnsafeCell<[Handler; IDT_ENTRIES]>,
-    counter_lock: Mutex<u8>,
+    db: Mutex<HandlerDb>,
+}
+
+struct HandlerDb {
+    entries: [Option<Handler>; IDT_ENTRIES],
+    counter: u8,
+}
+
+impl HandlerDb {
+    fn register_with_index(&mut self, index: u8, handler: Handler) {
+        self.entries[index as usize] = Some(handler);
+    }
+
+    fn register_with_autoincrement(&mut self, handler: Handler, force: bool) -> u8 {
+        let index = self.counter;
+        let entry = &mut self.entries[index as usize];
+        if entry.is_some() && !force {
+            panic!("attempt to override interrupt handler");
+        }
+        *entry = Some(handler);
+        self.counter += 1;
+        index
+    }
+
+    fn handler(&self, index: u8) -> &Option<Handler> {
+        &self.entries[index as usize]
+    }
 }
 
 impl Handlers {
     pub const fn const_new() -> Self {
         Self {
-            entries: UnsafeCell::new([Handler::None; IDT_ENTRIES]),
-            counter_lock: Mutex::new(32),
+            db: Mutex::new(HandlerDb {
+                entries: [None; IDT_ENTRIES],
+                counter: 34,
+            }),
         }
     }
 }
 
 impl Handlers {
-    fn register_exception(&self, index: usize, handler: ExceptionHandler) {
-        let _counter = self.counter_lock.lock_disabling_interrupts();
-
-        // SAFETY: protected by counter_lock mutex guard
-        let entries = unsafe { &mut *self.entries.get() };
-
-        entries[index] = Handler::Exception(handler);
+    fn register_exception(&self, index: u8, handler: ExceptionHandler) {
+        self.db
+            .lock_disabling_interrupts()
+            .register_with_index(index, Handler::Exception(handler));
     }
 
     fn register_interrupt(&self, handler: InterruptHandler) -> u8 {
-        let mut counter = self.counter_lock.lock_disabling_interrupts();
-
-        let index = *counter;
-
-        // SAFETY: protected by counter_lock mutex guard
-        let entries = unsafe { &mut *self.entries.get() };
-        entries[index as usize] = Handler::Interrupt(handler);
-
-        *counter += 1;
-
-        index
+        self.db
+            .lock_disabling_interrupts()
+            .register_with_autoincrement(Handler::Interrupt(handler), false)
     }
 
-    fn handler(&self, index: usize) -> &Handler {
-        // SAFETY: interrupts won't fire if they're disabled (I hope)
-        let entries = unsafe { &*self.entries.get() };
-        &entries[index]
+    fn handle(&self, index: u8, stack: &mut InterruptErrorStack) {
+        let db = self.db.lock_disabling_interrupts();
+        if let Some(handler) = db.handler(index) {
+            handler.handle(stack);
+        } else {
+            log::error!("handler {index} not registered");
+        }
     }
 }
 
@@ -61,7 +78,6 @@ unsafe impl Sync for Handlers {}
 pub enum Handler {
     Exception(ExceptionHandler),
     Interrupt(InterruptHandler),
-    None,
 }
 
 impl Handler {
@@ -69,7 +85,6 @@ impl Handler {
         match self {
             Handler::Exception(handler) => handler(stack.error_code, &mut stack.stack),
             Handler::Interrupt(handler) => handler(&mut stack.stack),
-            Handler::None => log::error!("Handler not registered"),
         }
     }
 }
@@ -78,7 +93,7 @@ pub fn register_interrupt(handler: InterruptHandler) -> u8 {
     HANDLERS.register_interrupt(handler)
 }
 
-pub fn register_exception(index: usize, handler: ExceptionHandler) {
+pub fn register_exception(index: u8, handler: ExceptionHandler) {
     HANDLERS.register_exception(index, handler);
 }
 
@@ -122,6 +137,5 @@ make_exception!(virtualization => "Virtualization fault");
 make_exception!(security => "Security exception");
 
 pub fn handle(isr: u64, stack: &mut InterruptErrorStack) {
-    let handler = HANDLERS.handler(isr as usize);
-    handler.handle(stack);
+    HANDLERS.handle(isr as u8, stack);
 }

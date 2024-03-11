@@ -8,10 +8,7 @@ use crate::{
         registers::{IretRegisters, PreservedRegisters, ScratchRegisters},
         VirtAddr,
     },
-    x86_64::{
-        segmentation::{self, SegmentSelector},
-        DescriptorPointer,
-    },
+    x86_64::segmentation::{self, DescriptorPointer, SegmentSelector},
 };
 
 use super::{handlers, IDT_ENTRIES};

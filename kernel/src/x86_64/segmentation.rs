@@ -8,8 +8,15 @@ use crate::arch::{registers::Cr4, VirtAddr};
 
 use super::{
     cpulocal::{self, CpuInfo, CpuLocal},
-    heap, DescriptorPointer,
+    heap,
 };
+
+#[derive(Debug, Clone, Copy, Default)]
+#[repr(C, packed)]
+pub struct DescriptorPointer {
+    pub size: u16,
+    pub address: VirtAddr,
+}
 
 static mut READ_FS: unsafe fn() -> u64 = impl_msr::read_fs;
 static mut READ_GS: unsafe fn() -> u64 = impl_msr::read_gs;

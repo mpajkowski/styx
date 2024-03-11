@@ -120,6 +120,10 @@ impl<T> Mutex<T> {
             _without_interrupts: Some(WithoutInterruptsGuard::enter()),
         }
     }
+
+    pub fn get_mut(&mut self) -> &mut T {
+        self.inner.get_mut()
+    }
 }
 
 bitflags::bitflags! {

@@ -100,7 +100,7 @@ pub fn alloc_stack() -> VirtAddr {
         let layout = Layout::from_size_align_unchecked(0x1000 * 16, STACK_ALIGNMENT);
         let raw = alloc_from_layout(layout);
         let stack_pointer = raw.add(layout.size());
-        assert!(stack_pointer.align_offset(STACK_ALIGNMENT) == 0);
+        debug_assert!(stack_pointer.align_offset(STACK_ALIGNMENT) == 0);
 
         VirtAddr::new_unchecked(raw.add(layout.size()) as u64)
     }
