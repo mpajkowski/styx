@@ -4,7 +4,7 @@ pub use limine_mini::memmap::Response as MemmapResponse;
 pub use limine_mini::module::Response as ModuleResponse;
 pub use limine_mini::rsdp::Response as RsdpResponse;
 
-use crate::Framebuffer;
+use crate::drivers::framebuffer::Framebuffer;
 
 pub struct Limine {
     pub framebuffer: &'static FramebufferResponse,
@@ -35,11 +35,11 @@ impl Limine {
         );
 
         Framebuffer::new(
-            unsafe { core::slice::from_raw_parts_mut(fb.addr as *mut u32, fb.size() / 4) },
+            unsafe { core::slice::from_raw_parts_mut(fb.addr, fb.size()) },
             fb.width,
             fb.height,
             fb.pitch,
-            fb.bpp,
+            (fb.bpp / 8) as u64,
         )
     }
 }

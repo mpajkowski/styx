@@ -6,7 +6,8 @@ use config::Config;
 use log::{Log, Record};
 use spin::Once;
 
-use crate::{Framebuffer, Terminal};
+use crate::drivers::framebuffer::Framebuffer;
+use crate::drivers::terminal::Terminal;
 
 use super::cpulocal::CpuLocal;
 use super::drivers::Serial;

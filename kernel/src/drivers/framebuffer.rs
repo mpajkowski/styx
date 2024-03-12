@@ -5,11 +5,19 @@ use crate::arch::sync::Mutex;
 static FRAMEBUFFER: Mutex<MaybeUninit<Framebuffer>> = Mutex::new(MaybeUninit::uninit());
 
 pub struct Framebuffer {
-    fb: &'static mut [RgbPixel],
+    fb: &'static mut [u8],
     width: u64,
     height: u64,
     pitch: u64,
-    bpp: u16,
+    pixelwidth: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Props {
+    pub width: u64,
+    pub height: u64,
+    pub pitch: u64,
+    pub pixelwidth: u64,
 }
 
 impl fmt::Debug for Framebuffer {
@@ -20,7 +28,7 @@ impl fmt::Debug for Framebuffer {
             .field("width", &self.width)
             .field("height", &self.height)
             .field("pitch", &self.pitch)
-            .field("bpp", &self.bpp)
+            .field("pixelwidth", &self.pixelwidth)
             .finish()
     }
 }
@@ -28,21 +36,19 @@ impl fmt::Debug for Framebuffer {
 impl Framebuffer {
     pub const BACKGROUND: RgbPixel = RgbPixel::from_rgb(0x1d, 0x1f, 0x21);
 
-    pub fn new(slice: &'static mut [u32], width: u64, height: u64, pitch: u64, bpp: u16) -> Self {
-        let slice = {
-            let ptr = slice.as_mut_ptr() as *mut RgbPixel;
-            let len = slice.len();
-
-            // safety: RgbPixel is a newtype wrapper
-            unsafe { slice::from_raw_parts_mut(ptr, len) }
-        };
-
+    pub fn new(
+        slice: &'static mut [u8],
+        width: u64,
+        height: u64,
+        pitch: u64,
+        pixelwidth: u64,
+    ) -> Self {
         let mut this = Self {
             fb: slice,
             width,
             height,
             pitch,
-            bpp,
+            pixelwidth,
         };
 
         this.clear();
@@ -54,6 +60,15 @@ impl Framebuffer {
         FRAMEBUFFER.lock_disabling_interrupts().write(self);
     }
 
+    pub const fn props(&self) -> Props {
+        Props {
+            width: self.width,
+            height: self.height,
+            pitch: self.pitch,
+            pixelwidth: self.pixelwidth,
+        }
+    }
+
     pub const fn width(&self) -> u64 {
         self.width
     }
@@ -63,7 +78,14 @@ impl Framebuffer {
     }
 
     pub fn clear(&mut self) {
-        self.fb.fill(Self::BACKGROUND);
+        let slice = {
+            let ptr = self.fb.as_mut_ptr() as *mut RgbPixel;
+            let len = self.fb.len() / self.pixelwidth as usize;
+
+            unsafe { slice::from_raw_parts_mut(ptr, len) }
+        };
+
+        slice.fill(Self::BACKGROUND);
     }
 
     pub fn with_handle<T>(mut fun: impl FnMut(&Self) -> T) -> T {
@@ -81,46 +103,37 @@ impl Framebuffer {
     pub fn put_pixel_at_point(&mut self, point: Point, color: RgbPixel) {
         let x = (point.x as u64).min(self.width - 1);
         let y = (point.y as u64).min(self.height - 1);
-        let target = x + y * self.width;
+        let target = (y * self.pitch + x * self.pixelwidth) as usize;
 
-        self.put_pixel_at_pos(target as usize, color);
+        let color = color.0;
+
+        self.fb[target] = color as u8;
+        self.fb[target + 1] = (color >> 8) as u8;
+        self.fb[target + 2] = (color >> 16) as u8;
     }
 
-    pub fn put_pixel_at_pos(&mut self, pos: usize, color: RgbPixel) {
-        self.fb[pos] = color;
+    pub fn put_from_point(&mut self, mut point: Point, pixels: impl Iterator<Item = RgbPixel>) {
+        for pix in pixels {
+            point.x += 1;
+            self.put_pixel_at_point(point, pix)
+        }
     }
 
-    pub fn put_from_point(&mut self, start: Point, pixels: impl Iterator<Item = RgbPixel>) {
-        let pos = self.pos(start);
-        //todo copy from slice?
-        pixels
-            .enumerate()
-            .for_each(|(offset, pix)| self.put_pixel_at_pos(pos + offset, pix));
-    }
-
-    pub fn put_bitmap(&mut self, width: u64, bitmap: &[u8]) {
+    pub fn put_bitmap(&mut self, mut point: Point, width: u64, bitmap: &[u8]) {
         let width = width.min(self.width) as usize;
-
-        let mut nw_corner = Point::new(0, 0);
 
         let pix_lines = bitmap
             .chunks(3 * width)
             .map(|line| line.chunks(3).map(RgbPixel::from_rgb_slice));
 
         for pix_line in pix_lines {
-            if nw_corner.y as u64 == self.height - 1 {
+            if point.y as u64 == self.height - 1 {
                 return;
             }
 
-            nw_corner.y += 1;
-            self.put_from_point(nw_corner, pix_line);
+            point.y += 1;
+            self.put_from_point(point, pix_line);
         }
-    }
-
-    pub fn pos(&self, point: Point) -> usize {
-        let x = (point.x as u64).min(self.width - 1);
-        let y = (point.y as u64).min(self.height - 1);
-        (x + y * self.width) as usize
     }
 }
 

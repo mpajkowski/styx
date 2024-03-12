@@ -1,8 +1,6 @@
 use noto_sans_mono_bitmap::{get_raster, get_raster_width, FontWeight, RasterHeight};
 
-use crate::Framebuffer;
-
-use super::framebuffer::Point;
+use super::framebuffer::{self, Framebuffer, Point};
 
 pub struct Terminal {
     chars_in_line: u64,
@@ -17,10 +15,10 @@ impl Terminal {
     const RASTER_WIDTH: u64 = get_raster_width(FontWeight::Regular, RasterHeight::Size24) as u64;
     const RASTER_HEIGHT: u64 = RasterHeight::Size24.val() as u64;
 
-    pub fn new(width: u64, height: u64) -> Self {
+    pub fn new(props: framebuffer::Props) -> Self {
         Self {
-            chars_in_line: width / Self::RASTER_WIDTH,
-            lines: height / Self::RASTER_HEIGHT,
+            chars_in_line: props.width / Self::RASTER_WIDTH,
+            lines: props.height / Self::RASTER_HEIGHT,
             current_char: 0,
             current_line: 0,
             offset_x: 0,

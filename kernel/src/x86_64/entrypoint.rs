@@ -7,12 +7,13 @@ use crate::arch::kernel_elf;
 use crate::arch::modules::Modules;
 use crate::arch::sync::hlt;
 use crate::arch::VirtAddr;
+use crate::drivers::framebuffer::Framebuffer;
+use crate::drivers::framebuffer::Point;
 use crate::x86_64::drivers::pit;
 use crate::x86_64::drivers::ps2;
 use crate::x86_64::heap;
 use crate::x86_64::interrupts;
 use crate::x86_64::limine::Limine;
-use crate::Framebuffer;
 
 use super::acpi;
 use super::drivers;
@@ -33,12 +34,14 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
     let com1 = drivers::Serial::init_com1().unwrap();
     let framebuffer = boot_info.framebuffer();
-    let terminal = crate::Terminal::new(framebuffer.width(), framebuffer.height());
+    let fb_props = framebuffer.props();
+    let terminal = crate::drivers::terminal::Terminal::new(fb_props);
     framebuffer.install();
 
     logger::initialize(com1, terminal, &config);
     log::info!("Installed logger");
     log::info!("cmdline: {:?}", config.cmdline);
+    log::info!("framebufer props: {:?}", fb_props);
 
     let (features, ext_features) = features::init();
 
@@ -73,7 +76,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     let modules = Modules::from_boot_info(boot_info.module.modules());
     if let Some(rudzik) = modules.by_path("/rudzik.data") {
         logger::disable_terminal();
-        Framebuffer::with_handle_mut(|fb| fb.put_bitmap(357, rudzik));
+        Framebuffer::with_handle_mut(|fb| fb.put_bitmap(Point::new(462, 180), 357, rudzik));
     } else {
         log::warn!(
             "Rudzik was not loaded, I wanted to panic but decided not to do so, but beware!"
