@@ -1,7 +1,7 @@
 ESP=build/esp
 SMP=2
 MEM=512M
-KERNEL_BIN=kernel/target/x86_64-unknown-none/debug/kernel
+KERNEL_BIN=kernel/target/x86_64-unknown-none/release/kernel
 
 default: test build-kernel-x86_64
 
@@ -9,7 +9,7 @@ test:
 	cd deps && cargo test
 
 build-kernel-x86_64:
-	cd kernel && cargo build -vvvv --target x86_64-unknown-none
+	cd kernel && cargo build -vvvv --release --target x86_64-unknown-none
 
 create-esp-dirs:
 	mkdir -p $(ESP)/efi/boot
@@ -27,8 +27,8 @@ deploy: deploy-kernel deploy-assets deploy-limine
 
 qemu: deploy
 	qemu-system-x86_64 \
-		-cpu qemu64,apic,fsgsbase,rdtscp,xsave,fxsr \
 		-enable-kvm \
+		-cpu qemu64,apic,fsgsbase \
 		-smp $(SMP) \
 		-m $(MEM) \
 		-serial stdio \

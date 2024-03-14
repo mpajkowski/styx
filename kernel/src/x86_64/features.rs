@@ -1,6 +1,6 @@
 use raw_cpuid::{ExtendedFeatures, FeatureInfo};
 
-pub fn init() -> (FeatureInfo, ExtendedFeatures) {
+pub fn load() -> (FeatureInfo, ExtendedFeatures) {
     let cpuid = raw_cpuid::CpuId::default();
 
     let features = cpuid

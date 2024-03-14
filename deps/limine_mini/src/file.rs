@@ -8,7 +8,7 @@ pub struct File {
     pub(crate) path: *const i8,
     pub(crate) cmdline: *const i8,
     pub(crate) media_type: u32,
-    pub(crate) _unused: MaybeUninit<u32>,
+    reserved: MaybeUninit<u32>,
     pub(crate) tftp_ip: u32,
     pub(crate) tftp_port: u32,
     pub(crate) partition_idx: u32,

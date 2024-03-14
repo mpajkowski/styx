@@ -1,3 +1,5 @@
+use core::mem::MaybeUninit;
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct Framebuffer {
@@ -13,7 +15,7 @@ pub struct Framebuffer {
     pub green_mask_shift: u8,
     pub blue_mask_size: u8,
     pub blue_mask_shift: u8,
-    reserved: [u8; 7],
+    reserved: MaybeUninit<[u8; 7]>,
     pub edid_size: u64,
     pub edid: *const u8,
     pub mode_count: u64,

@@ -43,7 +43,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     log::info!("cmdline: {:?}", config.cmdline);
     log::info!("framebufer props: {:?}", fb_props);
 
-    let (features, ext_features) = features::init();
+    let (features, ext_features) = features::load();
 
     log::info!("Installing early GDT");
     segmentation::early_init(&ext_features);
@@ -93,7 +93,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
 
 #[no_mangle]
 pub extern "C" fn _x86_64_ap_entrypoint(ap_id: u64, stack_top_addr: VirtAddr) {
-    let (_features, ext_features) = features::init();
+    let (_features, ext_features) = features::load();
     segmentation::early_init(&ext_features);
     interrupts::init_ap();
     cpulocal::init(ap_id, stack_top_addr);
