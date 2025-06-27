@@ -24,6 +24,7 @@ deploy-kernel: create-esp-dirs build-kernel-x86_64
 	cp $(KERNEL_BIN) $(ESP)
 
 deploy: deploy-kernel deploy-assets deploy-limine
+	rm $(ESP)/NvVars || true # todo: investigate why this file is crashing kernel
 
 qemu: deploy
 	qemu-system-x86_64 \

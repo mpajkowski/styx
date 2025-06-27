@@ -73,7 +73,7 @@ mod test {
     #[case("log=warn", Config { log: LevelFilter::Warn, ..Default::default() })]
     #[case("log=invalid, com1=false", Config { com1: false, ..Default::default() })]
     #[case("log=warn com1=false", Config { log: LevelFilter::Warn, com1: false, ..Default::default() })]
-    fn from_cmdline(#[case] cmdline: &str, #[case] expected: Config) {
+    fn from_cmdline(#[case] cmdline: &'static str, #[case] expected: Config) {
         let cmdline = Config::from_cmdline_str(cmdline);
         assert_eq!(cmdline, expected);
     }

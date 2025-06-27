@@ -23,6 +23,12 @@ impl CpuLocal {
 
         Some(unsafe { &mut *(ptr as *mut Self) })
     }
+
+    pub fn core_id() -> u64 {
+        Self::obtain()
+            .map(|cpulocal| cpulocal.info.lapic_id)
+            .unwrap_or(0)
+    }
 }
 
 #[repr(C)]

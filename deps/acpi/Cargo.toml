@@ -6,8 +6,8 @@ repository = "https://github.com/rust-osdev/acpi"
 description = "A pure-Rust library for parsing ACPI tables, fork of https://github.com/rust-osdev/acpi.git"
 categories = ["hardware-support", "no-std"]
 license = "MIT/Apache-2.0"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 bit_field = "0.10.2"
-log = "0.4.20"
+log = "0.4"

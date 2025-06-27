@@ -21,9 +21,7 @@ pub fn unwind() {
         asm!("mov {}, rbp", out(reg) stack_frame);
     }
 
-    let cpu = cpulocal::CpuLocal::obtain()
-        .map(|c| c.info.lapic_id)
-        .unwrap_or(0);
+    let cpu = cpulocal::CpuLocal::core_id();
 
     log::error!("Occurred on core {cpu}");
 

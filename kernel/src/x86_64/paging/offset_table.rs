@@ -110,11 +110,13 @@ impl<'a> OffsetTable<'a> {
                 | PageTableFlags::WRITABLE
                 | PageTableFlags::USER_ACCESSIBLE);
 
-        match size {
-            PageSize::Normal4K => self.map_4_kib(page, frame, parent_table_flags, flags, alloc),
-            PageSize::Huge2M => self.map_2_mib(page, frame, parent_table_flags, flags, alloc),
-            PageSize::Huge1G => self.map_1_gib(page, frame, parent_table_flags, flags, alloc),
-        }
+        let mapper = match size {
+            PageSize::Normal4K => Self::map_4_kib,
+            PageSize::Huge2M => Self::map_2_mib,
+            PageSize::Huge1G => Self::map_1_gib,
+        };
+
+        mapper(self, page, frame, parent_table_flags, flags, alloc)
     }
 
     fn map_1_gib(
