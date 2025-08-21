@@ -133,9 +133,15 @@ impl SdtHeader {
     /// Whether table is valid according to checksum.
     fn validate_checksum(&self, signature: Signature) -> AcpiResult<()> {
         // SAFETY: Entire table is mapped.
-        let table_bytes =
-            unsafe { core::slice::from_raw_parts((self as *const SdtHeader).cast::<u8>(), self.length as usize) };
-        let sum = table_bytes.iter().fold(0u8, |sum, &byte| sum.wrapping_add(byte));
+        let table_bytes = unsafe {
+            core::slice::from_raw_parts(
+                (self as *const SdtHeader).cast::<u8>(),
+                self.length as usize,
+            )
+        };
+        let sum = table_bytes
+            .iter()
+            .fold(0u8, |sum, &byte| sum.wrapping_add(byte));
 
         if sum == 0 {
             Ok(())

@@ -16,7 +16,7 @@
 //! * Use `AcpiTables::from_rsdp` if you have the physical address of the RSDP
 //! * Use `AcpiTables::from_rsdt` if you have the physical address of the RSDT/XSDT
 //! * Use `AcpiTables::search_for_rsdp_bios` if you don't have the address of either, but **you know you are
-//! running on BIOS, not UEFI**
+//!   running on BIOS, not UEFI**
 //! * Use `AcpiTables::from_tables_direct` if you are using the library in an unusual setting, such as in usermode,
 //!   and have a custom method to enumerate and access the tables.
 //!
@@ -60,7 +60,7 @@ pub mod rsdp;
 pub mod sdt;
 
 pub mod platform;
-pub use crate::platform::{interrupt::InterruptModel, PlatformInfo};
+pub use crate::platform::{PlatformInfo, interrupt::InterruptModel};
 
 pub use crate::mcfg::PciConfigRegions;
 
@@ -383,7 +383,7 @@ where
     handler: H,
 }
 
-impl<'t, H> Iterator for SsdtIterator<'t, H>
+impl<H> Iterator for SsdtIterator<'_, H>
 where
     H: AcpiHandler,
 {

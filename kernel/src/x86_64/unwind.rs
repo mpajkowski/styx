@@ -1,8 +1,8 @@
 use core::{arch::asm, fmt::Display};
 
 use crate::arch::{
-    paging::{address_space::AddressSpace, offset_table::TranslateResult},
     VirtAddr,
+    paging::{address_space::AddressSpace, offset_table::TranslateResult},
 };
 
 use super::cpulocal;

@@ -1,10 +1,10 @@
 use crate::{
+    AcpiResult, AcpiTable, InterruptModel,
     platform::{
-        interrupt::{Polarity, TriggerMode},
         ProcessorInfo,
+        interrupt::{Polarity, TriggerMode},
     },
     sdt::{ExtendedField, SdtHeader, Signature},
-    AcpiResult, AcpiTable, InterruptModel,
 };
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -85,14 +85,14 @@ impl Madt {
 
     fn parse_apic_model(&self) -> AcpiResult<(InterruptModel, Option<ProcessorInfo>)> {
         use crate::{
+            AcpiError,
             platform::{
+                Processor, ProcessorState,
                 interrupt::{
                     Apic, InterruptSourceOverride, IoApic, LocalInterruptLine, NmiLine,
                     NmiProcessor, NmiSource,
                 },
-                Processor, ProcessorState,
             },
-            AcpiError,
         };
 
         let mut local_apic_address = self.local_apic_address as u64;
@@ -223,7 +223,7 @@ impl Madt {
                             0 => LocalInterruptLine::Lint0,
                             1 => LocalInterruptLine::Lint1,
                             _ => {
-                                return Err(AcpiError::InvalidMadt(MadtError::InvalidLocalNmiLine))
+                                return Err(AcpiError::InvalidMadt(MadtError::InvalidLocalNmiLine));
                             }
                         },
                     });
@@ -240,7 +240,7 @@ impl Madt {
                             0 => LocalInterruptLine::Lint0,
                             1 => LocalInterruptLine::Lint1,
                             _ => {
-                                return Err(AcpiError::InvalidMadt(MadtError::InvalidLocalNmiLine))
+                                return Err(AcpiError::InvalidMadt(MadtError::InvalidLocalNmiLine));
                             }
                         },
                     });
@@ -607,7 +607,7 @@ fn parse_mps_inti_flags(flags: u16) -> crate::AcpiResult<(Polarity, TriggerMode)
         _ => {
             return Err(crate::AcpiError::InvalidMadt(
                 MadtError::MpsIntiInvalidPolarity,
-            ))
+            ));
         }
     };
 
@@ -618,7 +618,7 @@ fn parse_mps_inti_flags(flags: u16) -> crate::AcpiResult<(Polarity, TriggerMode)
         _ => {
             return Err(crate::AcpiError::InvalidMadt(
                 MadtError::MpsIntiInvalidTriggerMode,
-            ))
+            ));
         }
     };
 

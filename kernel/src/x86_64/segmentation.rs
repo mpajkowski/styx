@@ -4,7 +4,7 @@ use core::{alloc::Layout, arch::asm, fmt::Debug, mem::size_of};
 
 use raw_cpuid::ExtendedFeatures;
 
-use crate::arch::{registers::Cr4, VirtAddr};
+use crate::arch::{VirtAddr, registers::Cr4};
 
 use super::{
     cpulocal::{self, CpuInfo, CpuLocal},
@@ -146,7 +146,7 @@ unsafe fn load_gdt(table: &mut [GdtEntry]) {
         address: VirtAddr::new(table.as_ptr() as u64),
     };
 
-    asm!("lgdt [{}]", in(reg) &ptr, options(nostack));
+    unsafe { asm!("lgdt [{}]", in(reg) &ptr, options(nostack)) }
 }
 
 #[repr(transparent)]
@@ -203,20 +203,22 @@ unsafe fn load_cs(selector: SegmentSelector) {
      * able to jump to 32-bit instruction pointers. Only Intel supports for
      * 64-bit far calls/jumps in long-mode, AMD does not.
      */
-    asm!(
-        "push {selector}",
-        "lea {tmp}, [1f + rip]",
-        "push {tmp}",
-        "retfq",
-        "1:",
-        selector = in(reg) u64::from(selector.0),
-        tmp = lateout(reg) _,
-    );
+    unsafe {
+        asm!(
+            "push {selector}",
+            "lea {tmp}, [2f + rip]",
+            "push {tmp}",
+            "retfq",
+            "2:",
+            selector = in(reg) u64::from(selector.0),
+            tmp = lateout(reg) _,
+        );
+    }
 }
 
 #[inline(always)]
 unsafe fn load_ds(selector: SegmentSelector) {
-    asm!("mov ds, {0:x}", in(reg) selector.0, options(nomem, nostack))
+    unsafe { asm!("mov ds, {0:x}", in(reg) selector.0, options(nomem, nostack)) }
 }
 
 pub fn get_cs() -> SegmentSelector {
@@ -228,17 +230,17 @@ pub fn get_cs() -> SegmentSelector {
 
 #[inline(always)]
 unsafe fn load_es(selector: SegmentSelector) {
-    asm!("mov es, {0:x}", in(reg) selector.0, options(nomem, nostack))
+    unsafe { asm!("mov es, {0:x}", in(reg) selector.0, options(nomem, nostack)) }
 }
 
 #[inline(always)]
 unsafe fn load_ss(selector: SegmentSelector) {
-    asm!("mov ss, {0:x}", in(reg) selector.0, options(nomem, nostack))
+    unsafe { asm!("mov ss, {0:x}", in(reg) selector.0, options(nomem, nostack)) }
 }
 
 #[inline(always)]
 unsafe fn load_tss(selector: SegmentSelector) {
-    asm!("ltr {0:x}", in(reg) selector.0, options(nostack, nomem));
+    unsafe { asm!("ltr {0:x}", in(reg) selector.0, options(nostack, nomem)) }
 }
 
 static mut GDT_BOOT: [GdtEntry; 3] = [
@@ -347,6 +349,7 @@ pub fn early_init(feat: &ExtendedFeatures) {
     }
 
     unsafe {
+        #[allow(static_mut_refs)]
         load_gdt(&mut GDT_BOOT);
 
         // Reload segment registers
@@ -426,19 +429,19 @@ mod impl_msr {
     //const IA32_KERNEL_GS_BASE: u32 = 0xc0000102;
 
     pub unsafe fn read_fs() -> u64 {
-        msr::rdmsr(IA32_FS_BASE)
+        unsafe { msr::rdmsr(IA32_FS_BASE) }
     }
 
     pub unsafe fn read_gs() -> u64 {
-        msr::rdmsr(IA32_GS_BASE)
+        unsafe { msr::rdmsr(IA32_GS_BASE) }
     }
 
     pub unsafe fn write_fs(val: u64) {
-        msr::wrmsr(IA32_FS_BASE, val)
+        unsafe { msr::wrmsr(IA32_FS_BASE, val) }
     }
 
     pub unsafe fn write_gs(val: u64) {
-        msr::wrmsr(IA32_GS_BASE, val)
+        unsafe { msr::wrmsr(IA32_GS_BASE, val) }
     }
 }
 
@@ -447,21 +450,21 @@ mod impl_fsgsbase {
 
     pub unsafe fn read_fs() -> u64 {
         let val: u64;
-        asm!("rdfsbase {}", out(reg) val);
+        unsafe { asm!("rdfsbase {}", out(reg) val) }
         val
     }
 
     pub unsafe fn read_gs() -> u64 {
         let val: u64;
-        asm!("rdgsbase {}", out(reg) val);
+        unsafe { asm!("rdgsbase {}", out(reg) val) }
         val
     }
 
     pub unsafe fn write_fs(val: u64) {
-        asm!("wrfsbase {}", in(reg) val);
+        unsafe { asm!("wrfsbase {}", in(reg) val) }
     }
 
     pub unsafe fn write_gs(val: u64) {
-        asm!("wrgsbase {}", in(reg) val);
+        unsafe { asm!("wrgsbase {}", in(reg) val) }
     }
 }

@@ -33,7 +33,7 @@ qemu: deploy
 		-smp $(SMP) \
 		-m $(MEM) \
 		-serial stdio \
-		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_CODE.fd \
-		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_VARS.fd \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_CODE.4m.fd \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/x64/OVMF_VARS.4m.fd \
 		-drive format=raw,file=fat:rw:build/esp \
 		-d int,cpu_reset

@@ -1,9 +1,9 @@
 use rustc_demangle::Demangle;
 use spin::Once;
 use xmas_elf::{
+    ElfFile,
     sections::{SectionData, ShType},
     symbol_table::{Entry, Entry64},
-    ElfFile,
 };
 
 pub type KernelElfRef = &'static KernelElf;

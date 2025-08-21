@@ -5,10 +5,9 @@ use raw_cpuid::FeatureInfo;
 use spin::Once;
 
 use crate::x86_64::{
-    interrupts,
+    PhysAddr, VirtAddr, interrupts,
     msr::{rdmsr, wrmsr},
     sync::{Mutex, MutexGuard},
-    PhysAddr, VirtAddr,
 };
 
 use super::InterruptStack;

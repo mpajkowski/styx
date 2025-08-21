@@ -1,7 +1,6 @@
 use core::panic::PanicInfo;
 
 #[panic_handler]
-#[no_mangle]
 #[inline(never)]
 fn rust_begin_unwind(info: &PanicInfo) -> ! {
     crate::arch::sync::disable_interrupts();

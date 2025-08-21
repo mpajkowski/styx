@@ -39,34 +39,36 @@ impl Serial {
 
     #[inline(always)]
     unsafe fn received_data(&self) -> bool {
-        ioport::read_u8(self.port + 5) & 1 != 0
+        unsafe { ioport::read_u8(self.port + 5) & 1 != 0 }
     }
 
     #[inline(always)]
     unsafe fn transmit_empty(&self) -> bool {
-        ioport::read_u8(self.port + 5) & 0x20 != 0
+        unsafe { ioport::read_u8(self.port + 5) & 0x20 != 0 }
     }
 }
 
 #[inline(always)]
 #[allow(clippy::identity_op)]
 unsafe fn init(port: u16) -> Result<(), &'static str> {
-    ioport::write_u8(port + 1, 0x00); // disable all interrupts
-    ioport::write_u8(port + 3, 0x80); // enable DLAB
-    ioport::write_u8(port + 0, 0x03); // 38400 baud
-    ioport::write_u8(port + 1, 0x00); //
-    ioport::write_u8(port + 3, 0x03); // 8 bits, no parity, one stop bit
-    ioport::write_u8(port + 2, 0xc7); // enable fifo, clear them, with 14-byte threshold
-    ioport::write_u8(port + 4, 0x1e); // set in loopback mode, test the serial chip
+    unsafe {
+        ioport::write_u8(port + 1, 0x00); // disable all interrupts
+        ioport::write_u8(port + 3, 0x80); // enable DLAB
+        ioport::write_u8(port + 0, 0x03); // 38400 baud
+        ioport::write_u8(port + 1, 0x00); //
+        ioport::write_u8(port + 3, 0x03); // 8 bits, no parity, one stop bit
+        ioport::write_u8(port + 2, 0xc7); // enable fifo, clear them, with 14-byte threshold
+        ioport::write_u8(port + 4, 0x1e); // set in loopback mode, test the serial chip
 
-    let test = 0x42;
-    ioport::write_u8(port + 0, test);
+        let test = 0x42;
+        ioport::write_u8(port + 0, test);
 
-    if ioport::read_u8(port) != test {
-        return Err("Failed to initialize port");
+        if ioport::read_u8(port) != test {
+            return Err("Failed to initialize port");
+        }
+
+        ioport::write_u8(port + 4, 0x0f);
     }
-
-    ioport::write_u8(port + 4, 0x0f);
 
     Ok(())
 }

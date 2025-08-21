@@ -2,7 +2,7 @@
 
 use core::arch::asm;
 
-use crate::arch::{VirtAddr, FRAME_SIZE};
+use crate::arch::{FRAME_SIZE, VirtAddr};
 
 /// Page
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

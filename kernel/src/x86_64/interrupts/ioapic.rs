@@ -18,16 +18,22 @@ impl IoApicExt for IoApic {
         let addr = PhysAddr::new_unchecked(self.address as u64)
             .to_io()
             .as_mut_ptr::<u32>();
-        addr.write_volatile(register);
-        addr.add(4).read()
+
+        unsafe {
+            addr.write_volatile(register);
+            addr.add(4).read()
+        }
     }
 
     unsafe fn write(&self, register: u32, value: u32) {
         let addr = PhysAddr::new_unchecked(self.address as u64)
             .to_io()
             .as_mut_ptr::<u32>();
-        addr.write_volatile(register);
-        addr.add(4).write_volatile(value);
+
+        unsafe {
+            addr.write_volatile(register);
+            addr.add(4).write_volatile(value);
+        }
     }
 }
 

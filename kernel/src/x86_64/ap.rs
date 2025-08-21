@@ -9,7 +9,7 @@ use spin::Once;
 use acpi::platform::{ProcessorInfo, ProcessorState};
 
 use crate::{
-    arch::{interrupts::lapic, registers::Cr3, VirtAddr},
+    arch::{VirtAddr, interrupts::lapic, registers::Cr3},
     x86_64::{heap::alloc_stack, ioport::delay},
 };
 
@@ -20,7 +20,7 @@ pub static PROCESSOR_INFO: Once<ProcessorInfo> = Once::new();
 const CPU_SLICE_BEGIN: *mut bool = 0x3000 as _;
 static BSP_READY: AtomicBool = AtomicBool::new(false);
 
-extern "C" {
+unsafe extern "C" {
     /// Loads trampoline into conventional memory
     fn load_trampoline() -> usize;
 

@@ -4,7 +4,7 @@ use core::ops::{Index, IndexMut};
 
 use bitflags::bitflags;
 
-use crate::arch::{PhysAddr, FRAME_SIZE};
+use crate::arch::{FRAME_SIZE, PhysAddr};
 
 use super::{
     frame::{Frame, FrameError},
@@ -41,6 +41,12 @@ impl PageTable {
     /// Marks all entries as unused
     pub fn zero(&mut self) {
         self.iter_mut().for_each(|entry| entry.set_unused());
+    }
+}
+
+impl Default for PageTable {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -121,6 +127,12 @@ impl PageTableEntry {
         } else {
             Ok(Frame::containing_addr(self.addr(), PageSize::Normal4K))
         }
+    }
+}
+
+impl Default for PageTableEntry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

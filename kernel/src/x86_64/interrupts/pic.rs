@@ -77,6 +77,12 @@ impl Pic8529Pair {
     }
 }
 
+impl Default for Pic8529Pair {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Command {

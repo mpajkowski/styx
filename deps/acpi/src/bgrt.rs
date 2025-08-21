@@ -1,6 +1,6 @@
 use crate::{
-    sdt::{SdtHeader, Signature},
     AcpiTable,
+    sdt::{SdtHeader, Signature},
 };
 use bit_field::BitField;
 

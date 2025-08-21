@@ -6,7 +6,7 @@ pub mod pic;
 
 pub const IDT_ENTRIES: usize = 256;
 
-pub use idt::{init, init_ap, InterruptStack};
+pub use idt::{InterruptStack, init, init_ap};
 
 pub use handlers::{register_exception, register_interrupt};
 

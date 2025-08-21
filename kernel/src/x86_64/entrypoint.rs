@@ -1,3 +1,4 @@
+use crate::arch::VirtAddr;
 use crate::arch::ap;
 use crate::arch::cpulocal;
 use crate::arch::features;
@@ -6,7 +7,6 @@ use crate::arch::interrupts::pic;
 use crate::arch::kernel_elf;
 use crate::arch::modules::Modules;
 use crate::arch::sync::hlt;
-use crate::arch::VirtAddr;
 use crate::drivers::framebuffer::Framebuffer;
 use crate::drivers::framebuffer::Point;
 use crate::x86_64::drivers::pit;
@@ -21,7 +21,7 @@ use super::logger;
 use super::pmm;
 use super::segmentation;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _x86_64_bsp_entrypoint() {
     super::sync::disable_interrupts();
 
@@ -91,7 +91,7 @@ pub extern "C" fn _x86_64_bsp_entrypoint() {
     crate::main();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _x86_64_ap_entrypoint(ap_id: u64, stack_top_addr: VirtAddr) {
     let (_features, ext_features) = features::load();
     segmentation::early_init(&ext_features);

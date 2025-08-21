@@ -1,15 +1,11 @@
 #[macro_export]
 macro_rules! bit_sizeof {
-    ($target: expr) => {{
-        core::mem::size_of_val(&$target) * 8
-    }};
+    ($target: expr) => {{ core::mem::size_of_val(&$target) * 8 }};
 }
 
 #[macro_export]
 macro_rules! read_bit {
-    ($target: expr, $bit: expr) => {{
-        (($target >> $bit) & 1) != 0
-    }};
+    ($target: expr, $bit: expr) => {{ (($target >> $bit) & 1) != 0 }};
 }
 
 #[macro_export]
@@ -22,13 +18,9 @@ macro_rules! set_bit {
         }
     }};
 
-    ($target: expr, $bit: expr, true) => {{
-        $target | 1 << $bit
-    }};
+    ($target: expr, $bit: expr, true) => {{ $target | 1 << $bit }};
 
-    ($target: expr, $bit: expr, false) => {{
-        $target & !(1 << $bit)
-    }};
+    ($target: expr, $bit: expr, false) => {{ $target & !(1 << $bit) }};
 }
 
 #[macro_export]

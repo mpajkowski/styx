@@ -4,14 +4,14 @@ use bitflags::bitflags;
 
 use crate::{
     arch::{
+        VirtAddr,
         interrupts::handlers::register_exception,
         registers::{IretRegisters, PreservedRegisters, ScratchRegisters},
-        VirtAddr,
     },
     x86_64::segmentation::{self, DescriptorPointer, SegmentSelector},
 };
 
-use super::{handlers, IDT_ENTRIES};
+use super::{IDT_ENTRIES, handlers};
 
 #[repr(align(0x10))]
 struct InterruptDescriptorTable([Entry; IDT_ENTRIES]);
@@ -94,7 +94,7 @@ pub struct InterruptStack {
     pub iret: IretRegisters,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn generic_irq_handler(isr: u64, stack: *mut InterruptErrorStack) {
     let stack = unsafe { &mut *stack };
 
@@ -105,14 +105,16 @@ pub extern "C" fn generic_irq_handler(isr: u64, stack: *mut InterruptErrorStack)
 unsafe fn load() {
     let ptr = DescriptorPointer {
         size: (core::mem::size_of::<InterruptDescriptorTable>() - 1) as u16,
-        address: VirtAddr::new_unchecked(&IDT as *const _ as u64),
+        address: VirtAddr::new_unchecked(&raw const IDT as *const _ as u64),
     };
 
-    asm!("lidt [{}]", in(reg) &ptr, options(nostack));
+    unsafe {
+        asm!("lidt [{}]", in(reg) &ptr, options(nostack));
+    }
 }
 
 pub fn init() {
-    extern "C" {
+    unsafe extern "C" {
         static irq_handler_table: [VirtAddr; IDT_ENTRIES];
     }
 

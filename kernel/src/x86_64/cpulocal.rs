@@ -2,7 +2,7 @@ use crate::arch::VirtAddr;
 
 use super::{
     heap,
-    segmentation::{self, write_gs, GdtEntry, Tss},
+    segmentation::{self, GdtEntry, Tss, write_gs},
 };
 
 /// Stores per-cpu local data

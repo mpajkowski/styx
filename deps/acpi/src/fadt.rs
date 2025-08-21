@@ -1,8 +1,7 @@
 use crate::{
+    AcpiError, AcpiTable,
     address::{AccessSize, AddressSpace, GenericAddress, RawGenericAddress},
     sdt::{ExtendedField, SdtHeader, Signature},
-    AcpiError,
-    AcpiTable,
 };
 use bit_field::BitField;
 

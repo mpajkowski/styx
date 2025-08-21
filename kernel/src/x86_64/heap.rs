@@ -88,7 +88,7 @@ unsafe impl GlobalAlloc for HeapAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let ptr = NonNull::new(ptr).expect("passed null pointer");
-        self.inner.lock().deallocate(ptr, layout)
+        unsafe { self.inner.lock().deallocate(ptr, layout) }
     }
 }
 

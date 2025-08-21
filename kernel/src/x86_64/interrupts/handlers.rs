@@ -1,6 +1,6 @@
 use crate::arch::sync::Mutex;
 
-use super::{idt::InterruptErrorStack, InterruptStack, IDT_ENTRIES};
+use super::{IDT_ENTRIES, InterruptStack, idt::InterruptErrorStack};
 
 static HANDLERS: Handlers = Handlers::const_new();
 

@@ -77,7 +77,7 @@ pub struct MutexGuard<'a, T> {
     _without_interrupts: Option<WithoutInterruptsGuard>,
 }
 
-impl<'a, T> Deref for MutexGuard<'a, T> {
+impl<T> Deref for MutexGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -85,7 +85,7 @@ impl<'a, T> Deref for MutexGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for MutexGuard<'a, T> {
+impl<T> DerefMut for MutexGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.guard.deref_mut()
     }

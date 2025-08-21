@@ -42,8 +42,8 @@ impl<'a, const FRAME_SIZE: usize> BitmapAlloc<'a, FRAME_SIZE> {
     }
 }
 
-impl<'a, const FRAME_SIZE: usize, A: PhysAddr> FrameAlloc<FRAME_SIZE, A>
-    for BitmapAlloc<'a, FRAME_SIZE>
+impl<const FRAME_SIZE: usize, A: PhysAddr> FrameAlloc<FRAME_SIZE, A>
+    for BitmapAlloc<'_, FRAME_SIZE>
 {
     fn alloc(&mut self, size: usize) -> Option<A> {
         let size = align_up!(size, FRAME_SIZE) / FRAME_SIZE;

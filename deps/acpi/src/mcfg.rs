@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
 use crate::{
-    sdt::{SdtHeader, Signature},
     AcpiTable,
+    sdt::{SdtHeader, Signature},
 };
 use core::{mem, slice};
 

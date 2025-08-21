@@ -2,14 +2,14 @@ use core::slice;
 
 use easybit::align_up;
 use frame_alloc::{
-    bitmap::{BitmapAlloc, USED},
     FrameAlloc,
+    bitmap::{BitmapAlloc, USED},
 };
 use limine_mini::memmap::EntryKind;
 
 use crate::x86_64::limine::Limine;
 
-use super::{sync::Mutex, PhysAddr};
+use super::{PhysAddr, sync::Mutex};
 pub const FRAME_SIZE: u64 = 0x1000;
 
 static FRAME_ALLOC: Mutex<Option<PhysAlloc>> = Mutex::new(None);

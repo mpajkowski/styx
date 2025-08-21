@@ -2,7 +2,7 @@ use core::ptr::NonNull;
 
 use acpi::{AcpiHandler, InterruptModel, PlatformInfo};
 
-use crate::arch::{ap, interrupts::ioapic, PhysAddr, VirtAddr};
+use crate::arch::{PhysAddr, VirtAddr, ap, interrupts::ioapic};
 
 use super::limine::Limine;
 
@@ -54,7 +54,7 @@ impl AcpiHandler for VirtToPhysAcpiHandler {
         let addr = PhysAddr::new_unchecked(physical_address as u64);
         let virt = NonNull::new(addr.to_io().as_mut_ptr()).expect("null addr");
 
-        acpi::PhysicalMapping::new(physical_address, virt, size, size, *self)
+        unsafe { acpi::PhysicalMapping::new(physical_address, virt, size, size, *self) }
     }
 
     fn unmap_physical_region<T>(_region: &acpi::PhysicalMapping<Self, T>) {

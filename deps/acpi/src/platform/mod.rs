@@ -1,8 +1,8 @@
 pub mod interrupt;
 
 use crate::{
-    address::GenericAddress, fadt::Fadt, madt::Madt, AcpiError, AcpiHandler, AcpiResult,
-    AcpiTables, PowerProfile,
+    AcpiError, AcpiHandler, AcpiResult, AcpiTables, PowerProfile, address::GenericAddress,
+    fadt::Fadt, madt::Madt,
 };
 use alloc::vec::Vec;
 use interrupt::InterruptModel;

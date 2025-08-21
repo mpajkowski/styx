@@ -252,7 +252,7 @@ impl PageTableWalker {
 
         let page_table = match self.next_table_mut(entry) {
             Err(PageTableWalkError::MappedToHugePage) => {
-                return Err(PageTableCreateError::MappedToHugePage)
+                return Err(PageTableCreateError::MappedToHugePage);
             }
             Err(PageTableWalkError::NotMapped) => panic!("Not mapped frame at this point"),
             Ok(pt) => pt,
