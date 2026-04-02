@@ -55,7 +55,7 @@ impl PciConfigRegions {
 
     /// Returns an iterator providing information about the system's present PCI busses.
     /// This is roughly equivalent to manually iterating the system's MCFG table.
-    pub fn iter(&self) -> PciConfigEntryIterator {
+    pub fn iter(&self) -> PciConfigEntryIterator<'_> {
         PciConfigEntryIterator {
             entries: &self.regions,
             index: 0,

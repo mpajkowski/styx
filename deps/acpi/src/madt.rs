@@ -272,7 +272,7 @@ impl Madt {
         ))
     }
 
-    pub fn entries(&self) -> MadtEntryIter {
+    pub fn entries(&self) -> MadtEntryIter<'_> {
         MadtEntryIter {
             pointer: unsafe { (self as *const Madt as *const u8).add(mem::size_of::<Madt>()) },
             remaining_length: self.header.length - mem::size_of::<Madt>() as u32,

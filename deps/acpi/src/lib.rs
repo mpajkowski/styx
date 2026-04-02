@@ -310,7 +310,7 @@ where
     }
 
     /// Iterates through all of the SSDT tables.
-    pub fn ssdts(&self) -> SsdtIterator<H> {
+    pub fn ssdts(&self) -> SsdtIterator<'_, H> {
         SsdtIterator {
             tables_phys_ptrs: self.tables_phys_ptrs(),
             handler: self.handler.clone(),
